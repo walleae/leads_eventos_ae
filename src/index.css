@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .kanban-column {
+    @apply flex flex-col gap-3 min-w-[280px] max-w-[280px];
+  }
+
+  .kanban-card {
+    @apply bg-white rounded-lg border border-gray-200 p-3 shadow-sm cursor-grab active:cursor-grabbing;
+  }
+
+  .lead-badge-quente {
+    @apply bg-red-100 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+
+  .lead-badge-morno {
+    @apply bg-amber-100 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+
+  .lead-badge-frio {
+    @apply bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+}
