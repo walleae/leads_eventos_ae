@@ -6,11 +6,15 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // req.url = /api/meta-proxy/v19.0/...?params
-  const afterProxy = req.url.split('/api/meta-proxy')[1] || '/';
-  const targetUrl = `https://graph.facebook.com${afterProxy}`;
+  // Path capturado pelo rewrite no vercel.json via _p=
+  const graphPath = req.query._p || '';
+  const extraParams = { ...req.query };
+  delete extraParams._p;
 
-  // Forward headers, skipping ones that break the proxy
+  const qs = new URLSearchParams(extraParams).toString();
+  const targetUrl = `https://graph.facebook.com/${graphPath}${qs ? '?' + qs : ''}`;
+
+  // Monta headers sem os que quebram o proxy
   const forward = {};
   for (const [k, v] of Object.entries(req.headers)) {
     const lower = k.toLowerCase();
@@ -19,7 +23,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // Read raw body (needed for binary image uploads)
+  // Lê body raw (necessário para uploads binários)
   let body;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     const chunks = [];
