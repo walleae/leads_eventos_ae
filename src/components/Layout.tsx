@@ -5,8 +5,10 @@ import {
   ClipboardList,
   MessageSquare,
   CalendarDays,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useAuth } from '../hooks/useAuth';
 
 const navItems = [
   { to: '/leads', label: 'Base de Leads', icon: Users },
@@ -16,6 +18,7 @@ const navItems = [
 ];
 
 export default function Layout() {
+  const { user, signOut } = useAuth();
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -54,6 +57,17 @@ export default function Layout() {
           ))}
         </nav>
 
+        {/* Footer */}
+        <div className="px-3 py-4 border-t border-gray-100">
+          <p className="text-xs text-gray-400 truncate px-2 mb-2">{user?.email}</p>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <LogOut size={16} />
+            Sair
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
