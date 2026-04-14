@@ -3,8 +3,8 @@ import type { TemplateButton } from '../types/template';
 
 const WABA_ID = import.meta.env.VITE_META_WABA_ID as string;
 const ACCESS_TOKEN = import.meta.env.VITE_META_ACCESS_TOKEN as string;
-// Em dev usa proxy Vite para evitar CORS; em produção chama a API diretamente
-const GRAPH_BASE = import.meta.env.DEV ? '/api/graph' : 'https://graph.facebook.com';
+// Em dev usa proxy Vite; em produção usa Vercel serverless proxy (sem CORS)
+const GRAPH_BASE = import.meta.env.DEV ? '/api/graph' : '/api/meta-proxy';
 
 /** Normaliza o nome do template: lowercase, sem acentos, underscores */
 export function normalizeName(nome: string): string {
