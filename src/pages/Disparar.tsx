@@ -81,7 +81,7 @@ function renderWaText(text: string) {
   });
 }
 
-function WhatsAppBubble({ components, templateName }: { components: MetaTemplateComponent[]; templateName: string }) {
+function WhatsAppBubble({ components }: { components: MetaTemplateComponent[]; templateName: string }) {
   const body = getTemplateBody(components);
   const imgUrl = getTemplateHeaderImageUrl(components);
   const buttons = components.find((c) => c.type === 'BUTTONS')?.buttons ?? [];
