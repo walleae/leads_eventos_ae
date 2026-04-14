@@ -411,7 +411,7 @@ export default function Disparar() {
                     <p className="text-xs text-green-200">online</p>
                   </div>
                 </div>
-                <WhatsAppBubble components={template.components} templateName={template.name} />
+                <WhatsAppBubble components={template.components} />
                 {/* WA input bar */}
                 <div className="bg-[#F0F0F0] px-3 py-2 flex items-center gap-2">
                   <div className="flex-1 bg-white rounded-full px-4 py-2 text-xs text-gray-400">
