@@ -1,44 +1,164 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import type { Lead } from '../types/lead';
-import { generateId } from '../lib/utils';
+
+// ─── DB ↔ App mapping ────────────────────────────────────────────────────────
+
+function dbToLead(row: Record<string, unknown>): Lead {
+  return {
+    id: row.id as string,
+    nome: row.nome as string,
+    email: row.email as string,
+    telefone: row.telefone as string,
+    nomeEscola: row.nome_escola as string,
+    relacaoEscola: row.relacao_escola as string,
+    jaECliente: row.ja_e_cliente as boolean,
+    estado: (row.estado as string | null) ?? undefined,
+    cidade: (row.cidade as string | null) ?? undefined,
+    porteAlunos: (row.porte_alunos as string | null) ?? undefined,
+    maiorInteresse: (row.maior_interesse as Lead['maiorInteresse']) ?? undefined,
+    redeEnsino: (row.rede_ensino as string | null) ?? undefined,
+    nivelInteresse: (row.nivel_interesse as Lead['nivelInteresse']) ?? undefined,
+    nomeConsultor: (row.nome_consultor as string | null) ?? undefined,
+    observacoes: (row.observacoes as string | null) ?? undefined,
+    stage: row.stage as string,
+    origem: row.origem as string,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+function leadToDb(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Record<string, unknown> {
+  return {
+    nome: lead.nome,
+    email: lead.email,
+    telefone: lead.telefone,
+    nome_escola: lead.nomeEscola,
+    relacao_escola: lead.relacaoEscola,
+    ja_e_cliente: lead.jaECliente,
+    estado: lead.estado ?? null,
+    cidade: lead.cidade ?? null,
+    porte_alunos: lead.porteAlunos ?? null,
+    maior_interesse: lead.maiorInteresse ?? null,
+    rede_ensino: lead.redeEnsino ?? null,
+    nivel_interesse: lead.nivelInteresse ?? null,
+    nome_consultor: lead.nomeConsultor ?? null,
+    observacoes: lead.observacoes ?? null,
+    stage: lead.stage,
+    origem: lead.origem,
+  };
+}
+
+function partialLeadToDb(updates: Partial<Lead>): Record<string, unknown> {
+  const db: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.nome !== undefined) db.nome = updates.nome;
+  if (updates.email !== undefined) db.email = updates.email;
+  if (updates.telefone !== undefined) db.telefone = updates.telefone;
+  if (updates.nomeEscola !== undefined) db.nome_escola = updates.nomeEscola;
+  if (updates.relacaoEscola !== undefined) db.relacao_escola = updates.relacaoEscola;
+  if (updates.jaECliente !== undefined) db.ja_e_cliente = updates.jaECliente;
+  if (updates.estado !== undefined) db.estado = updates.estado ?? null;
+  if (updates.cidade !== undefined) db.cidade = updates.cidade ?? null;
+  if (updates.porteAlunos !== undefined) db.porte_alunos = updates.porteAlunos ?? null;
+  if (updates.maiorInteresse !== undefined) db.maior_interesse = updates.maiorInteresse ?? null;
+  if (updates.redeEnsino !== undefined) db.rede_ensino = updates.redeEnsino ?? null;
+  if (updates.nivelInteresse !== undefined) db.nivel_interesse = updates.nivelInteresse ?? null;
+  if (updates.nomeConsultor !== undefined) db.nome_consultor = updates.nomeConsultor ?? null;
+  if (updates.observacoes !== undefined) db.observacoes = updates.observacoes ?? null;
+  if (updates.stage !== undefined) db.stage = updates.stage;
+  if (updates.origem !== undefined) db.origem = updates.origem;
+  return db;
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useLeads() {
-  const [leads, setLeads] = useState<Lead[]>(() => {
-    const stored = localStorage.getItem('leads_eventos');
-    return stored ? JSON.parse(stored) : [];
-  });
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const persist = (updated: Lead[]) => {
-    setLeads(updated);
-    localStorage.setItem('leads_eventos', JSON.stringify(updated));
+  const fetchLeads = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setLeads(data.map((row) => dbToLead(row as Record<string, unknown>)));
+    } else if (error) {
+      console.error('useLeads fetchLeads error:', error.message);
+    }
+    setLoading(false);
   };
 
-  const saveLead = (leadData: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Lead => {
-    const now = new Date().toISOString();
-    const lead: Lead = {
-      ...leadData,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    persist([...leads, lead]);
+  useEffect(() => {
+    fetchLeads();
+  }, []);
+
+  const saveLead = async (
+    leadData: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<Lead | null> => {
+    const { data, error } = await supabase
+      .from('leads')
+      .insert([leadToDb(leadData)])
+      .select()
+      .single();
+    if (error || !data) {
+      console.error('useLeads saveLead error:', error?.message);
+      return null;
+    }
+    const lead = dbToLead(data as Record<string, unknown>);
+    setLeads((prev) => [lead, ...prev]);
     return lead;
   };
 
-  const updateLead = (id: string, updates: Partial<Lead>): void => {
-    const updated = leads.map((l) =>
-      l.id === id ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l
+  const updateLead = async (id: string, updates: Partial<Lead>): Promise<void> => {
+    const dbUpdates = partialLeadToDb(updates);
+    const { error } = await supabase.from('leads').update(dbUpdates).eq('id', id);
+    if (error) {
+      console.error('useLeads updateLead error:', error.message);
+      return;
+    }
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.id === id
+          ? { ...l, ...updates, updatedAt: dbUpdates.updated_at as string }
+          : l
+      )
     );
-    persist(updated);
   };
 
-  const updateLeadStage = (id: string, stage: string): void => {
-    updateLead(id, { stage });
+  const updateLeadStage = async (id: string, stage: string): Promise<void> => {
+    await updateLead(id, { stage });
   };
 
-  const deleteLead = (id: string): void => {
-    persist(leads.filter((l) => l.id !== id));
+  const deleteLead = async (id: string): Promise<void> => {
+    const { error } = await supabase.from('leads').delete().eq('id', id);
+    if (error) {
+      console.error('useLeads deleteLead error:', error.message);
+      return;
+    }
+    setLeads((prev) => prev.filter((l) => l.id !== id));
   };
 
-  return { leads, saveLead, updateLead, updateLeadStage, deleteLead };
+  const importLeads = async (
+    rows: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>[]
+  ): Promise<{ inserted: number; failed: number }> => {
+    const dbRows = rows.map(leadToDb);
+    const { data, error } = await supabase
+      .from('leads')
+      .insert(dbRows)
+      .select();
+    if (error) {
+      console.error('importLeads error:', error.message);
+      return { inserted: 0, failed: rows.length };
+    }
+    const inserted = data?.length ?? 0;
+    if (data) {
+      const newLeads = data.map((row) => dbToLead(row as Record<string, unknown>));
+      setLeads((prev) => [...newLeads, ...prev]);
+    }
+    return { inserted, failed: rows.length - inserted };
+  };
+
+  return { leads, loading, saveLead, updateLead, updateLeadStage, deleteLead, importLeads, refetch: fetchLeads };
 }

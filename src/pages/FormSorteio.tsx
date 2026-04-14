@@ -39,14 +39,14 @@ export default function FormSorteio() {
     return errs;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
       return;
     }
-    saveLead({
+    await saveLead({
       nome: form.nome,
       email: form.email,
       telefone: form.telefone,

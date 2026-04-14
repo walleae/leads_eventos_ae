@@ -1,6 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
-  LayoutDashboard,
   Users,
   Link as LinkIcon,
   ClipboardList,
@@ -10,8 +9,7 @@ import {
 import { cn } from '../lib/utils';
 
 const navItems = [
-  { to: '/kanban', label: 'Kanban', icon: LayoutDashboard },
-  { to: '/leads', label: 'Leads', icon: Users },
+  { to: '/leads', label: 'Base de Leads', icon: Users },
   { to: '/form/sorteio', label: 'Form Sorteio', icon: LinkIcon },
   { to: '/form/consultor', label: 'Form Consultor', icon: ClipboardList },
   { to: '/templates', label: 'Templates', icon: MessageSquare },
@@ -56,9 +54,6 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="px-5 py-4 border-t border-gray-200">
-          <p className="text-xs text-gray-400">Agenda Edu © 2025</p>
-        </div>
       </aside>
 
       {/* Main Content */}

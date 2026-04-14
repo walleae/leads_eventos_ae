@@ -19,6 +19,8 @@ const badgeVariants = cva(
         frio: 'bg-blue-100 text-blue-700',
         sorteio: 'bg-teal-100 text-teal-700',
         consultor: 'bg-purple-100 text-purple-700',
+        sim: 'bg-green-100 text-green-700',
+        nao: 'bg-gray-100 text-gray-600',
       },
     },
     defaultVariants: {

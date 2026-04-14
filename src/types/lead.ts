@@ -15,7 +15,7 @@ export interface Lead {
   nomeConsultor?: string;
   observacoes?: string;
   stage: string;
-  origem: 'sorteio' | 'consultor';
+  origem: string;
   createdAt: string;
   updatedAt: string;
 }

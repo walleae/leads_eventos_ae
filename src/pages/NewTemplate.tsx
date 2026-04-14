@@ -1,15 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Upload, Bold, Italic, Strikethrough, ArrowLeft, X } from 'lucide-react';
+import { Upload, Bold, Italic, Strikethrough, ArrowLeft, X, CheckCircle, AlertCircle, Loader2, Link2, Info, MessageCircle } from 'lucide-react';
 import { useTemplates } from '../hooks/useTemplates';
+import type { TemplateButton, TemplateButtonType } from '../types/template';
 import { STAGES } from '../types/lead';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
+import { createMetaTemplate, uploadImageToSupabase } from '../lib/meta';
 
-function WhatsAppPreview({ nome, corpo, midia }: { nome: string; corpo: string; midia?: string }) {
+function WhatsAppPreview({
+  nome,
+  corpo,
+  midia,
+  botoes,
+}: {
+  nome: string;
+  corpo: string;
+  midia?: string;
+  botoes?: TemplateButton[];
+}) {
   const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const renderText = (text: string) => {
@@ -24,6 +36,8 @@ function WhatsAppPreview({ nome, corpo, midia }: { nome: string; corpo: string; 
       return <span key={i}>{part}</span>;
     });
   };
+
+  const hasContent = corpo || midia;
 
   return (
     <div className="flex flex-col h-full">
@@ -45,20 +59,41 @@ function WhatsAppPreview({ nome, corpo, midia }: { nome: string; corpo: string; 
           background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4d4d4' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"), #ECE5DD`,
         }}
       >
-        {(corpo || midia) ? (
+        {hasContent ? (
           <div className="flex justify-end">
-            <div className="bg-[#DCF8C6] rounded-xl rounded-tr-sm px-3 py-2 max-w-[85%] shadow-sm">
-              {midia && (
-                <div className="mb-2 rounded-lg overflow-hidden">
-                  <img src={midia} alt="Media" className="w-full max-h-48 object-cover" />
+            <div className="max-w-[85%] w-full">
+              {/* Message bubble */}
+              <div className="bg-[#DCF8C6] rounded-xl rounded-tr-sm px-3 py-2 shadow-sm">
+                {midia && (
+                  <div className="mb-2 rounded-lg overflow-hidden">
+                    <img src={midia} alt="Media" className="w-full max-h-48 object-cover" />
+                  </div>
+                )}
+                {corpo && (
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-snug">
+                    {renderText(corpo)}
+                  </p>
+                )}
+                <p className="text-right text-[10px] text-gray-500 mt-1">{now} ✓✓</p>
+              </div>
+
+              {/* Buttons preview */}
+              {botoes && botoes.filter((b) => b.text).length > 0 && (
+                <div className="mt-1 space-y-1">
+                  {botoes.filter((b) => b.text).map((btn, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-lg px-3 py-2 flex items-center justify-center gap-1.5 shadow-sm border border-gray-100"
+                    >
+                      {btn.type === 'url'
+                        ? <Link2 size={12} className="text-[#128C7E]" />
+                        : <MessageCircle size={12} className="text-[#128C7E]" />
+                      }
+                      <span className="text-sm text-[#128C7E] font-medium">{btn.text}</span>
+                    </div>
+                  ))}
                 </div>
               )}
-              {corpo && (
-                <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-snug">
-                  {renderText(corpo)}
-                </p>
-              )}
-              <p className="text-right text-[10px] text-gray-500 mt-1">{now} ✓✓</p>
             </div>
           </div>
         ) : (
@@ -93,8 +128,12 @@ export default function NewTemplate() {
   const [corpo, setCorpo] = useState('');
   const [midia, setMidia] = useState<string | undefined>();
   const [midiaNome, setMidiaNome] = useState<string | undefined>();
+  const [midiaFile, setMidiaFile] = useState<File | undefined>();
+  const [botoes, setBotoes] = useState<TemplateButton[]>([]);
   const [error, setError] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [metaStatus, setMetaStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [metaMessage, setMetaMessage] = useState('');
 
   useEffect(() => {
     if (editId) {
@@ -105,6 +144,7 @@ export default function NewTemplate() {
         setCorpo(t.corpo);
         setMidia(t.midia);
         setMidiaNome(t.midiaNome);
+        setBotoes(t.botoes ?? []);
       }
     }
   }, [editId]);
@@ -116,6 +156,7 @@ export default function NewTemplate() {
       alert('Arquivo muito grande. Máximo 5MB.');
       return;
     }
+    setMidiaFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       setMidia(ev.target?.result as string);
@@ -140,7 +181,20 @@ export default function NewTemplate() {
     }, 0);
   };
 
-  const handleSave = () => {
+  const addBotao = (type: TemplateButtonType) => {
+    if (botoes.length >= 3) return;
+    setBotoes([...botoes, { type, text: '', url: '' }]);
+  };
+
+  const updateBotao = (idx: number, field: keyof TemplateButton, value: string) => {
+    setBotoes(botoes.map((b, i) => (i === idx ? { ...b, [field]: value } : b)));
+  };
+
+  const removeBotao = (idx: number) => {
+    setBotoes(botoes.filter((_, i) => i !== idx));
+  };
+
+  const handleSave = async () => {
     if (!nome.trim()) {
       setError('O nome do template é obrigatório');
       return;
@@ -149,15 +203,53 @@ export default function NewTemplate() {
       setError('O corpo da mensagem é obrigatório');
       return;
     }
-    setError('');
-
-    if (editId) {
-      updateTemplate(editId, { nome, corpo, stage: stage || undefined, midia, midiaNome });
-    } else {
-      saveTemplate({ nome, corpo, stage: stage || undefined, midia, midiaNome });
+    const botoesValidos = botoes.filter((b) => b.text.trim());
+    for (const b of botoesValidos) {
+      if (b.type === 'url' && !b.url?.trim()) {
+        setError('Botões de link precisam ter uma URL');
+        return;
+      }
     }
-    setSaved(true);
-    setTimeout(() => navigate('/templates'), 1000);
+    setError('');
+    setSaving(true);
+    setMetaStatus('sending');
+    setMetaMessage('Fazendo upload da imagem...');
+
+    try {
+      // 1. Upload da imagem para Supabase Storage (se houver)
+      let imageUrl: string | undefined;
+      if (midiaFile) {
+        imageUrl = await uploadImageToSupabase(midiaFile);
+      }
+
+      // 2. Salva no Supabase (usa URL pública em vez de base64)
+      const templateData = {
+        nome,
+        corpo,
+        stage: stage || undefined,
+        midia: imageUrl ?? midia, // URL pública se subiu, senão mantém o que tinha
+        midiaNome: midiaNome,
+        botoes: botoesValidos,
+      };
+      if (editId) {
+        await updateTemplate(editId, templateData);
+      } else {
+        await saveTemplate(templateData);
+      }
+
+      // 3. Cria na Meta API
+      setMetaMessage('Enviando para a Meta...');
+      const result = await createMetaTemplate({ nome, corpo, imageFile: midiaFile, botoes: botoesValidos });
+      setMetaStatus('success');
+      const statusLabel = result.status === 'PENDING' ? 'Aguardando aprovação' : result.status;
+      setMetaMessage(`Template enviado! Status Meta: ${statusLabel}.`);
+    } catch (err) {
+      setMetaStatus('error');
+      setMetaMessage(err instanceof Error ? err.message : 'Erro ao salvar template');
+    } finally {
+      setSaving(false);
+      setTimeout(() => navigate('/templates'), 2500);
+    }
   };
 
   return (
@@ -193,6 +285,9 @@ export default function NewTemplate() {
                 value={nome}
                 onChange={(e) => { setNome(e.target.value); setError(''); }}
               />
+              <p className="text-xs text-gray-400 mt-1">
+                Será normalizado para a Meta: <span className="font-mono">{nome ? nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') : '—'}</span>
+              </p>
             </div>
 
             {/* Etapa */}
@@ -214,6 +309,10 @@ export default function NewTemplate() {
             {/* Mídia */}
             <div>
               <Label>Cabeçalho — Mídia (opcional)</Label>
+              <div className="flex items-start gap-1.5 mt-1 mb-2 text-xs text-blue-700 bg-blue-50 px-2.5 py-2 rounded-lg">
+                <Info size={12} className="mt-0.5 shrink-0" />
+                <span>A imagem será enviada para o Supabase Storage e a URL pública usada na criação do template na Meta.</span>
+              </div>
               {midia ? (
                 <div className="mt-1 relative">
                   <img
@@ -222,7 +321,7 @@ export default function NewTemplate() {
                     className="w-full max-h-40 object-cover rounded-lg border border-gray-200"
                   />
                   <button
-                    onClick={() => { setMidia(undefined); setMidiaNome(undefined); }}
+                    onClick={() => { setMidia(undefined); setMidiaNome(undefined); setMidiaFile(undefined); }}
                     className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md text-gray-600 hover:text-red-600 transition-colors"
                   >
                     <X size={14} />
@@ -250,13 +349,11 @@ export default function NewTemplate() {
                 <Label htmlFor="corpo">Corpo da mensagem *</Label>
                 <span className="text-xs text-gray-400">{corpo.length}/4096</span>
               </div>
-
-              {/* Formatting buttons */}
               <div className="flex gap-1 mb-1.5">
                 <button
                   type="button"
                   onClick={() => insertFormat('*', '*')}
-                  className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                  className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors font-bold text-xs"
                   title="Negrito"
                 >
                   <Bold size={14} />
@@ -278,7 +375,6 @@ export default function NewTemplate() {
                   <Strikethrough size={14} />
                 </button>
               </div>
-
               <Textarea
                 id="corpo"
                 ref={textareaRef}
@@ -290,22 +386,111 @@ export default function NewTemplate() {
               />
             </div>
 
+            {/* Botões */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Botões com link (opcional)</Label>
+                <span className="text-xs text-gray-400">{botoes.length}/3</span>
+              </div>
+
+              {botoes.length > 0 && (
+                <div className="space-y-3 mb-3">
+                  {botoes.map((btn, i) => (
+                    <div key={i} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-600 flex items-center gap-1.5">
+                          {btn.type === 'url' ? (
+                            <><Link2 size={11} /> Botão com link</>
+                          ) : (
+                            <><MessageCircle size={11} /> Resposta rápida</>
+                          )}
+                          <span className="text-gray-400">#{i + 1}</span>
+                        </span>
+                        <button onClick={() => removeBotao(i)} className="text-gray-400 hover:text-red-500 transition-colors">
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Texto do botão *</label>
+                        <Input
+                          placeholder={btn.type === 'url' ? 'Ex: Saiba mais, Acesse aqui...' : 'Ex: Sim, quero! / Não tenho interesse'}
+                          value={btn.text}
+                          maxLength={25}
+                          onChange={(e) => updateBotao(i, 'text', e.target.value)}
+                        />
+                        <p className="text-xs text-gray-400 mt-0.5 text-right">{btn.text.length}/25</p>
+                      </div>
+                      {btn.type === 'url' && (
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">URL de destino *</label>
+                          <Input
+                            placeholder="https://..."
+                            value={btn.url ?? ''}
+                            onChange={(e) => updateBotao(i, 'url', e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {botoes.length < 3 && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => addBotao('url')}
+                    className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 border border-dashed border-primary-300 rounded-lg px-3 py-2 flex-1 justify-center hover:bg-primary-50 transition-colors"
+                  >
+                    <Link2 size={12} />
+                    + Link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addBotao('quick_reply')}
+                    className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-700 border border-dashed border-green-300 rounded-lg px-3 py-2 flex-1 justify-center hover:bg-green-50 transition-colors"
+                  >
+                    <MessageCircle size={12} />
+                    + Resposta rápida
+                  </button>
+                </div>
+              )}
+            </div>
+
             {error && (
               <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
             )}
 
-            {saved && (
-              <p className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
-                Template salvo com sucesso! Redirecionando...
-              </p>
+            {metaStatus === 'sending' && (
+              <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
+                <Loader2 size={14} className="animate-spin" />
+                {metaMessage}
+              </div>
+            )}
+
+            {metaStatus === 'success' && (
+              <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                <CheckCircle size={14} />
+                {metaMessage}
+              </div>
+            )}
+
+            {metaStatus === 'error' && (
+              <div className="space-y-1">
+                <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                  <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                  <span><strong>Erro Meta:</strong> {metaMessage} — Template salvo no Supabase.</span>
+                </div>
+              </div>
             )}
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => navigate('/templates')}>
+              <Button variant="outline" onClick={() => navigate('/templates')} disabled={saving}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave} disabled={saved}>
-                {editId ? 'Atualizar Template' : 'Salvar Template'}
+              <Button onClick={handleSave} disabled={saving}>
+                {saving && <Loader2 size={14} className="animate-spin" />}
+                {saving ? 'Salvando...' : editId ? 'Atualizar Template' : 'Salvar Template'}
               </Button>
             </div>
           </div>
@@ -315,8 +500,11 @@ export default function NewTemplate() {
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
               Prévia do WhatsApp
             </p>
-            <div className="max-w-sm mx-auto bg-white rounded-xl shadow-md overflow-hidden" style={{ height: '480px', display: 'flex', flexDirection: 'column' }}>
-              <WhatsAppPreview nome={nome} corpo={corpo} midia={midia} />
+            <div
+              className="max-w-sm mx-auto bg-white rounded-xl shadow-md overflow-hidden"
+              style={{ minHeight: '480px', display: 'flex', flexDirection: 'column' }}
+            >
+              <WhatsAppPreview nome={nome} corpo={corpo} midia={midia} botoes={botoes} />
             </div>
           </div>
         </div>

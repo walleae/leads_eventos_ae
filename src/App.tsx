@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import Kanban from './pages/Kanban';
 import Leads from './pages/Leads';
 import FormSorteio from './pages/FormSorteio';
 import FormConsultor from './pages/FormConsultor';
 import Templates from './pages/Templates';
 import NewTemplate from './pages/NewTemplate';
+import Disparar from './pages/Disparar';
 
 export default function App() {
   return (
@@ -17,11 +17,11 @@ export default function App() {
 
         {/* App layout */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/kanban" replace />} />
-          <Route path="/kanban" element={<Kanban />} />
+          <Route path="/" element={<Navigate to="/leads" replace />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/templates/novo" element={<NewTemplate />} />
+          <Route path="/disparar" element={<Disparar />} />
         </Route>
       </Routes>
     </BrowserRouter>
