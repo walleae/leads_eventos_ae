@@ -20,6 +20,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
+console.log('[App] main.tsx carregado, env SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL ? 'ok' : 'AUSENTE');
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
