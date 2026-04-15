@@ -38,7 +38,6 @@ interface Segmento {
 }
 
 const SEGMENTOS: Segmento[] = [
-  { id: 'todos',        label: 'Todos os leads',       filtros: {} },
   { id: 'quentes',      label: 'Leads quentes 🔴',     filtros: { niveis: ['quente'] } },
   { id: 'mornos',       label: 'Leads mornos 🟡',      filtros: { niveis: ['morno'] } },
   { id: 'frios',        label: 'Leads frios 🔵',        filtros: { niveis: ['frio'] } },
@@ -67,15 +66,19 @@ function applyFiltros(leads: Lead[], f: Filtros): Lead[] {
   });
 }
 
-// ─── Multi-select Origem ──────────────────────────────────────────────────────
+// ─── Multi-select genérico ────────────────────────────────────────────────────
 
-interface OrigemMultiSelectProps {
-  options: string[];
+interface MultiSelectOption { value: string; label: string; }
+
+interface MultiSelectProps {
+  options: MultiSelectOption[];
   selected: string[];
   onChange: (values: string[]) => void;
+  placeholder: string;
+  emptyText?: string;
 }
 
-function OrigemMultiSelect({ options, selected, onChange }: OrigemMultiSelectProps) {
+function MultiSelect({ options, selected, onChange, placeholder, emptyText }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -91,19 +94,23 @@ function OrigemMultiSelect({ options, selected, onChange }: OrigemMultiSelectPro
     onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
   };
 
+  const selectedLabels = selected.map(
+    (v) => options.find((o) => o.value === v)?.label ?? v
+  );
+
   const label =
     selected.length === 0
-      ? 'Todas as origens'
+      ? placeholder
       : selected.length === 1
-      ? selected[0]
-      : `${selected.length} origens selecionadas`;
+      ? selectedLabels[0]
+      : `${selected.length} selecionados`;
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-between gap-2 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white hover:border-gray-300 transition-colors"
+        className="flex items-center justify-between gap-2 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-gray-300 transition-colors"
       >
         <span className={selected.length > 0 ? 'text-primary-700 font-medium' : 'text-gray-500'}>
           {label}
@@ -112,42 +119,34 @@ function OrigemMultiSelect({ options, selected, onChange }: OrigemMultiSelectPro
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
           {options.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-gray-400">Nenhuma origem disponível</p>
+            <p className="px-3 py-2 text-xs text-gray-400">{emptyText ?? 'Nenhuma opção'}</p>
           ) : (
             <>
               {options.map((opt) => {
-                const checked = selected.includes(opt);
+                const checked = selected.includes(opt.value);
                 return (
                   <button
-                    key={opt}
+                    key={opt.value}
                     type="button"
-                    onClick={() => toggle(opt)}
+                    onClick={() => toggle(opt.value)}
                     className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors"
                   >
-                    <span
-                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                        checked
-                          ? 'bg-primary-600 border-primary-600'
-                          : 'border-gray-300 bg-white'
-                      }`}
-                    >
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                      checked ? 'bg-primary-600 border-primary-600' : 'border-gray-300 bg-white'
+                    }`}>
                       {checked && <Check size={10} className="text-white" />}
                     </span>
                     <span className={checked ? 'text-primary-700 font-medium' : 'text-gray-700'}>
-                      {opt}
+                      {opt.label}
                     </span>
                   </button>
                 );
               })}
               {selected.length > 0 && (
                 <div className="border-t border-gray-100 px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => onChange([])}
-                    className="text-xs text-gray-400 hover:text-gray-600"
-                  >
+                  <button type="button" onClick={() => onChange([])} className="text-xs text-gray-400 hover:text-gray-600">
                     Limpar seleção
                   </button>
                 </div>
@@ -241,7 +240,7 @@ export default function Disparar() {
 
   const { leads } = useLeads();
 
-  const [segmentoId, setSegmentoId] = useState<string>('todos');
+  const [segmentoIds, setSegmentoIds] = useState<string[]>([]);
   const [origemFilter, setOrigemFilter] = useState<string[]>([]);
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [listaOpen, setListaOpen] = useState(false);
@@ -259,26 +258,30 @@ export default function Disparar() {
   useEffect(() => {
     setExcludedIds(new Set());
     setConfirmado(false);
-  }, [segmentoId, origemFilter]);
+  }, [segmentoIds, origemFilter]);
 
   const todasOrigens = useMemo(() => {
     const set = new Set(leads.map((l) => l.origem).filter(Boolean));
     return Array.from(set).sort();
   }, [leads]);
 
-  const filtros: Filtros = useMemo(() => {
-    const seg = SEGMENTOS.find((s) => s.id === segmentoId);
-    if (!seg) return FILTROS_VAZIOS;
-    return { ...FILTROS_VAZIOS, ...seg.filtros };
-  }, [segmentoId]);
-
   const leadsAlvo = useMemo(() => {
-    let result = applyFiltros(leads, filtros);
-    if (origemFilter.length > 0) {
-      result = result.filter((l) => origemFilter.includes(l.origem));
-    }
-    return result;
-  }, [leads, filtros, origemFilter]);
+    // Filtro por origem
+    const base = origemFilter.length > 0
+      ? leads.filter((l) => origemFilter.includes(l.origem))
+      : leads;
+
+    // Filtro por segmento: OR entre todos os selecionados (vazio = todos)
+    if (segmentoIds.length === 0) return base;
+
+    return base.filter((l) =>
+      segmentoIds.some((segId) => {
+        const seg = SEGMENTOS.find((s) => s.id === segId);
+        if (!seg) return false;
+        return applyFiltros([l], { ...FILTROS_VAZIOS, ...seg.filtros }).length > 0;
+      })
+    );
+  }, [leads, origemFilter, segmentoIds]);
 
   // Leads que realmente serão enviados (descontando excluídos manualmente)
   const leadsEnvio = useMemo(
@@ -329,7 +332,7 @@ export default function Disparar() {
         template_corpo: corpo,
         has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
         image_url: supabaseImageUrl,
-        segmento: segmentoId,
+        segmento: segmentoIds.join(',') || 'todos',
         telefones: leadsEnvio.map((l) => l.telefone).join(','),
         leads: leadsEnvio.map((l) => ({
           id: l.id,
@@ -401,50 +404,28 @@ export default function Disparar() {
             </div>
 
             <div className="px-5 pb-5 space-y-5 pt-5">
-              {/* Filtro por Origem — destaque principal */}
+              {/* Origem */}
               <div>
-                <label className="text-sm font-semibold text-gray-800 block mb-2">
-                  Origem
-                </label>
-                <OrigemMultiSelect
-                  options={todasOrigens}
+                <label className="text-sm font-semibold text-gray-800 block mb-2">Origem</label>
+                <MultiSelect
+                  options={todasOrigens.map((o) => ({ value: o, label: o }))}
                   selected={origemFilter}
                   onChange={(v) => { setOrigemFilter(v); setConfirmado(false); }}
+                  placeholder="Todas as origens"
+                  emptyText="Nenhuma origem disponível"
                 />
               </div>
 
-              {/* Segmentos — menor destaque */}
+              {/* Segmento */}
               <div>
-                <label className="text-xs font-medium text-gray-400 uppercase tracking-wide block mb-2">
-                  Segmento
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
-                  {SEGMENTOS.map((seg) => {
-                    const baseLeads = applyFiltros(leads, { ...FILTROS_VAZIOS, ...seg.filtros });
-                    const count = origemFilter.length > 0
-                      ? baseLeads.filter((l) => origemFilter.includes(l.origem)).length
-                      : baseLeads.length;
-                    const selected = segmentoId === seg.id;
-                    return (
-                      <button
-                        key={seg.id}
-                        type="button"
-                        onClick={() => { setSegmentoId(seg.id); setConfirmado(false); }}
-                        className={`text-left px-3 py-2 rounded-lg border text-xs transition-all ${
-                          selected
-                            ? 'border-primary-400 bg-primary-50 text-primary-700 font-medium'
-                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                        >
-                          <span className="block text-xs font-semibold">{seg.label}</span>
-                          <span className={`text-xs mt-0.5 block ${selected ? 'text-primary-500' : 'text-gray-400'}`}>
-                            {count} lead{count !== 1 ? 's' : ''}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <label className="text-sm font-semibold text-gray-800 block mb-2">Segmento</label>
+                <MultiSelect
+                  options={SEGMENTOS.map((s) => ({ value: s.id, label: s.label }))}
+                  selected={segmentoIds}
+                  onChange={(v) => { setSegmentoIds(v); setConfirmado(false); }}
+                  placeholder="Todos os segmentos"
+                />
+              </div>
             </div>
           </section>
 
