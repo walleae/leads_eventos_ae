@@ -244,7 +244,6 @@ export default function Disparar() {
   const [segmentoId, setSegmentoId] = useState<string>('todos');
   const [origemFilter, setOrigemFilter] = useState<string[]>([]);
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
-  const [pubAlvoOpen, setPubAlvoOpen] = useState(false);
   const [listaOpen, setListaOpen] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
   const [sending, setSending] = useState(false);
@@ -395,68 +394,48 @@ export default function Disparar() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
 
-          {/* ── Público-alvo (colapsável) ── */}
+          {/* ── Público-alvo ── */}
           <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Cabeçalho clicável */}
-            <button
-              type="button"
-              onClick={() => setPubAlvoOpen((o) => !o)}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Users size={16} className="text-gray-500" />
-                <h2 className="text-sm font-semibold text-gray-800">Público-alvo</h2>
-                {!pubAlvoOpen && (
-                  <span className="ml-2 text-xs text-primary-600 font-medium bg-primary-50 px-2 py-0.5 rounded-full">
-                    {segmentoLabel}
-                    {origemFilter.length > 0 && ` · ${origemFilter.length} origem(ns)`}
-                    {' '}— {leadsAlvo.length} lead{leadsAlvo.length !== 1 ? 's' : ''}
-                  </span>
-                )}
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
+              <Users size={16} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-800">Público-alvo</h2>
+            </div>
+
+            <div className="px-5 pb-5 space-y-5 pt-5">
+              {/* Filtro por Origem — destaque principal */}
+              <div>
+                <label className="text-sm font-semibold text-gray-800 block mb-2">
+                  Origem
+                </label>
+                <OrigemMultiSelect
+                  options={todasOrigens}
+                  selected={origemFilter}
+                  onChange={(v) => { setOrigemFilter(v); setConfirmado(false); }}
+                />
               </div>
-              {pubAlvoOpen ? (
-                <ChevronUp size={16} className="text-gray-400" />
-              ) : (
-                <ChevronDown size={16} className="text-gray-400" />
-              )}
-            </button>
 
-            {pubAlvoOpen && (
-              <div className="px-5 pb-5 space-y-4 border-t border-gray-100">
-                {/* Filtro por Origem */}
-                <div className="pt-4">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Filtrar por Origem
-                  </label>
-                  <OrigemMultiSelect
-                    options={todasOrigens}
-                    selected={origemFilter}
-                    onChange={(v) => { setOrigemFilter(v); setConfirmado(false); }}
-                  />
-                </div>
-
-                {/* Segmentos */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Segmento
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {SEGMENTOS.map((seg) => {
-                      const baseLeads = applyFiltros(leads, { ...FILTROS_VAZIOS, ...seg.filtros });
-                      const count = origemFilter.length > 0
-                        ? baseLeads.filter((l) => origemFilter.includes(l.origem)).length
-                        : baseLeads.length;
-                      const selected = segmentoId === seg.id;
-                      return (
-                        <button
-                          key={seg.id}
-                          type="button"
-                          onClick={() => { setSegmentoId(seg.id); setConfirmado(false); }}
-                          className={`text-left px-4 py-3 rounded-lg border text-sm transition-all ${
-                            selected
-                              ? 'border-primary-500 bg-primary-50 text-primary-700 font-medium shadow-sm'
-                              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
+              {/* Segmentos — menor destaque */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 uppercase tracking-wide block mb-2">
+                  Segmento
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+                  {SEGMENTOS.map((seg) => {
+                    const baseLeads = applyFiltros(leads, { ...FILTROS_VAZIOS, ...seg.filtros });
+                    const count = origemFilter.length > 0
+                      ? baseLeads.filter((l) => origemFilter.includes(l.origem)).length
+                      : baseLeads.length;
+                    const selected = segmentoId === seg.id;
+                    return (
+                      <button
+                        key={seg.id}
+                        type="button"
+                        onClick={() => { setSegmentoId(seg.id); setConfirmado(false); }}
+                        className={`text-left px-3 py-2 rounded-lg border text-xs transition-all ${
+                          selected
+                            ? 'border-primary-400 bg-primary-50 text-primary-700 font-medium'
+                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
                         >
                           <span className="block text-xs font-semibold">{seg.label}</span>
                           <span className={`text-xs mt-0.5 block ${selected ? 'text-primary-500' : 'text-gray-400'}`}>
@@ -468,7 +447,7 @@ export default function Disparar() {
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </section>
 
           {/* ── Verificações de segurança ── */}
