@@ -318,7 +318,6 @@ export default function Disparar() {
   if (!template) return null;
 
   const corpo = getTemplateBody(template.components);
-  const segmentoLabel = SEGMENTOS.find((s) => s.id === segmentoId)?.label ?? segmentoId;
   const stageLabel = (id: string) => STAGES.find((s) => s.id === id)?.title ?? id;
 
   const handleEnviar = async () => {
@@ -446,7 +445,6 @@ export default function Disparar() {
                     })}
                   </div>
                 </div>
-              </div>
             </div>
           </section>
 
