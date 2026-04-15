@@ -1,11 +1,12 @@
 import { useState, useMemo, useRef } from 'react';
-import { Trash2, Send, ChevronDown, Filter, X, Upload, Download, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Trash2, Send, Filter, X, Upload, Download, FileText, AlertCircle, CheckCircle2, Pencil, Plus } from 'lucide-react';
 import { useLeads } from '../hooks/useLeads';
 import { useTemplates } from '../hooks/useTemplates';
 import type { Lead } from '../types/lead';
 import { STAGES } from '../types/lead';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/select';
 import { dispararMensagem } from '../lib/webhook';
 import { normalizeName } from '../lib/meta';
@@ -26,7 +27,7 @@ const PORTE_OPTIONS = ['Até 100', '100-300', '300-500', '500+'];
 
 const CSV_COLUMNS = [
   { key: 'telefone',       label: 'telefone',        required: true,  desc: 'Número com DDD, apenas dígitos (ex: 11999999999)' },
-  { key: 'nome',           label: 'nome',             required: true,  desc: 'Nome completo do contato' },
+  { key: 'nome',           label: 'nome',             required: false, desc: 'Nome completo do contato' },
   { key: 'origem',         label: 'origem',           required: true,  desc: 'Texto livre (ex: Evento X, Indicação, sorteio...)' },
   { key: 'email',          label: 'email',            required: false, desc: 'E-mail do contato' },
   { key: 'nome_escola',    label: 'nome_escola',      required: false, desc: 'Nome da escola ou instituição' },
@@ -81,7 +82,6 @@ function parseCSV(text: string): ParsedRow[] {
     headers.forEach((h, i) => { raw[h] = (values[i] ?? '').trim(); });
 
     const errors: string[] = [];
-    if (!raw.nome) errors.push('Nome obrigatório');
     if (!raw.telefone) errors.push('Telefone obrigatório');
     if (!raw.origem) errors.push('Origem obrigatória');
 
@@ -473,32 +473,241 @@ function DisparoModal({ lead, onClose }: DisparoModalProps) {
   );
 }
 
-interface EditStageModalProps {
-  lead: Lead | null;
+type LeadFormData = Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>;
+
+const EMPTY_LEAD_FORM: LeadFormData = {
+  nome: '',
+  email: '',
+  telefone: '',
+  nomeEscola: '',
+  relacaoEscola: '',
+  jaECliente: false,
+  estado: '',
+  cidade: '',
+  porteAlunos: '',
+  maiorInteresse: undefined,
+  redeEnsino: '',
+  nivelInteresse: undefined,
+  nomeConsultor: '',
+  observacoes: '',
+  stage: 'novo',
+  origem: '',
+};
+
+interface LeadFormModalProps {
+  lead?: Lead | null;
   onClose: () => void;
-  onSave: (id: string, stage: string) => void;
+  onSave: (data: LeadFormData, id?: string) => Promise<void>;
 }
 
-function EditStageModal({ lead, onClose, onSave }: EditStageModalProps) {
-  const [stage, setStage] = useState(lead?.stage ?? 'novo');
-  if (!lead) return null;
+function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
+  const isEdit = !!lead;
+  const [form, setForm] = useState<LeadFormData>(
+    lead
+      ? {
+          nome: lead.nome ?? '',
+          email: lead.email ?? '',
+          telefone: lead.telefone ?? '',
+          nomeEscola: lead.nomeEscola ?? '',
+          relacaoEscola: lead.relacaoEscola ?? '',
+          jaECliente: lead.jaECliente ?? false,
+          estado: lead.estado ?? '',
+          cidade: lead.cidade ?? '',
+          porteAlunos: lead.porteAlunos ?? '',
+          maiorInteresse: lead.maiorInteresse,
+          redeEnsino: lead.redeEnsino ?? '',
+          nivelInteresse: lead.nivelInteresse,
+          nomeConsultor: lead.nomeConsultor ?? '',
+          observacoes: lead.observacoes ?? '',
+          stage: lead.stage ?? 'novo',
+          origem: lead.origem ?? '',
+        }
+      : { ...EMPTY_LEAD_FORM }
+  );
+  const [saving, setSaving] = useState(false);
+
+  const set = (key: keyof LeadFormData, value: unknown) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleSave = async () => {
+    if (!form.telefone || !form.origem) return;
+    setSaving(true);
+    await onSave(
+      {
+        ...form,
+        estado: form.estado || undefined,
+        cidade: form.cidade || undefined,
+        porteAlunos: form.porteAlunos || undefined,
+        redeEnsino: form.redeEnsino || undefined,
+        nomeConsultor: form.nomeConsultor || undefined,
+        observacoes: form.observacoes || undefined,
+      },
+      lead?.id
+    );
+    setSaving(false);
+    onClose();
+  };
+
   return (
-    <Dialog open onClose={onClose}>
+    <Dialog open onClose={onClose} className="max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Mover Etapa</DialogTitle>
+        <DialogTitle>{isEdit ? 'Editar Lead' : 'Novo Lead'}</DialogTitle>
         <DialogClose onClose={onClose} />
       </DialogHeader>
-      <DialogBody>
-        <p className="text-sm text-gray-600 mb-3">{lead.nome}</p>
-        <Select value={stage} onChange={(e) => setStage(e.target.value)}>
-          {STAGES.map((s) => (
-            <option key={s.id} value={s.id}>{s.title}</option>
-          ))}
-        </Select>
+      <DialogBody className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Nome</label>
+            <Input
+              placeholder="Nome completo"
+              value={form.nome}
+              onChange={(e) => set('nome', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">
+              Telefone <span className="text-red-500">*</span>
+            </label>
+            <Input
+              placeholder="11999999999"
+              value={form.telefone}
+              onChange={(e) => set('telefone', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">E-mail</label>
+            <Input
+              type="email"
+              placeholder="email@exemplo.com"
+              value={form.email}
+              onChange={(e) => set('email', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">
+              Origem <span className="text-red-500">*</span>
+            </label>
+            <Input
+              placeholder="Ex: Evento Abril, Sorteio..."
+              value={form.origem}
+              onChange={(e) => set('origem', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Nome da Escola</label>
+            <Input
+              placeholder="Escola ABC"
+              value={form.nomeEscola}
+              onChange={(e) => set('nomeEscola', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Relação com a Escola</label>
+            <Select value={form.relacaoEscola} onChange={(e) => set('relacaoEscola', e.target.value)}>
+              <option value="">Selecionar...</option>
+              {RELACAO_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Estado</label>
+            <Input
+              placeholder="SP"
+              value={form.estado}
+              onChange={(e) => set('estado', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Cidade</label>
+            <Input
+              placeholder="São Paulo"
+              value={form.cidade}
+              onChange={(e) => set('cidade', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Porte de Alunos</label>
+            <Select value={form.porteAlunos} onChange={(e) => set('porteAlunos', e.target.value)}>
+              <option value="">Selecionar...</option>
+              {PORTE_OPTIONS.map((p) => <option key={p} value={p}>{p} alunos</option>)}
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Rede de Ensino</label>
+            <Input
+              placeholder="Rede XYZ"
+              value={form.redeEnsino}
+              onChange={(e) => set('redeEnsino', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Maior Interesse</label>
+            <Select
+              value={form.maiorInteresse ?? ''}
+              onChange={(e) => set('maiorInteresse', (e.target.value as Lead['maiorInteresse']) || undefined)}
+            >
+              <option value="">Selecionar...</option>
+              <option value="agenda_edu">Agenda Edu</option>
+              <option value="pagamentos">Pagamentos</option>
+              <option value="ambos">Ambos</option>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Nível de Interesse</label>
+            <Select
+              value={form.nivelInteresse ?? ''}
+              onChange={(e) => set('nivelInteresse', (e.target.value as Lead['nivelInteresse']) || undefined)}
+            >
+              <option value="">Selecionar...</option>
+              <option value="quente">Quente</option>
+              <option value="morno">Morno</option>
+              <option value="frio">Frio</option>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Consultor</label>
+            <Input
+              placeholder="Nome do consultor"
+              value={form.nomeConsultor}
+              onChange={(e) => set('nomeConsultor', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Já é cliente?</label>
+            <Select
+              value={form.jaECliente ? 'sim' : 'nao'}
+              onChange={(e) => set('jaECliente', e.target.value === 'sim')}
+            >
+              <option value="nao">Não</option>
+              <option value="sim">Sim</option>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Etapa do Funil</label>
+            <Select value={form.stage} onChange={(e) => set('stage', e.target.value)}>
+              {STAGES.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
+            </Select>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600 block mb-1">Observações</label>
+          <textarea
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+            rows={3}
+            placeholder="Observações adicionais..."
+            value={form.observacoes}
+            onChange={(e) => set('observacoes', e.target.value)}
+          />
+        </div>
       </DialogBody>
       <DialogFooter>
         <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
-        <Button size="sm" onClick={() => { onSave(lead.id, stage); onClose(); }}>Salvar</Button>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={saving || !form.telefone || !form.origem}
+        >
+          {saving ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Criar Lead'}
+        </Button>
       </DialogFooter>
     </Dialog>
   );
@@ -529,11 +738,20 @@ const EMPTY_FILTERS: Filters = {
 };
 
 export default function Leads() {
-  const { leads, updateLeadStage, deleteLead, importLeads } = useLeads();
+  const { leads, saveLead, updateLead, updateLeadStage, deleteLead, importLeads } = useLeads();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [disparoLead, setDisparoLead] = useState<Lead | null>(null);
   const [editLead, setEditLead] = useState<Lead | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
+
+  const handleSaveLead = async (data: LeadFormData, id?: string) => {
+    if (id) {
+      await updateLead(id, data);
+    } else {
+      await saveLead(data);
+    }
+  };
 
   // Derive unique consultors and states from data
   const consultores = useMemo(() => {
@@ -583,10 +801,16 @@ export default function Leads() {
           <h1 className="text-xl font-bold text-gray-900">Base de Leads</h1>
           <p className="text-sm text-gray-500">{leads.length} lead(s) cadastrado(s)</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setShowImport(true)}>
-          <Upload size={14} />
-          Importar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setShowImport(true)}>
+            <Upload size={14} />
+            Importar CSV
+          </Button>
+          <Button size="sm" onClick={() => setShowCreate(true)}>
+            <Plus size={14} />
+            Novo Lead
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -775,9 +999,9 @@ export default function Leads() {
                         <button
                           onClick={() => setEditLead(lead)}
                           className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                          title="Mover etapa"
+                          title="Editar lead"
                         >
-                          <ChevronDown size={14} />
+                          <Pencil size={14} />
                         </button>
                         <button
                           onClick={() => setDisparoLead(lead)}
@@ -804,11 +1028,19 @@ export default function Leads() {
       </div>
 
       <DisparoModal lead={disparoLead} onClose={() => setDisparoLead(null)} />
-      <EditStageModal
-        lead={editLead}
-        onClose={() => setEditLead(null)}
-        onSave={updateLeadStage}
-      />
+      {editLead && (
+        <LeadFormModal
+          lead={editLead}
+          onClose={() => setEditLead(null)}
+          onSave={handleSaveLead}
+        />
+      )}
+      {showCreate && (
+        <LeadFormModal
+          onClose={() => setShowCreate(false)}
+          onSave={handleSaveLead}
+        />
+      )}
       {showImport && (
         <ImportCSVModal
           onClose={() => setShowImport(false)}

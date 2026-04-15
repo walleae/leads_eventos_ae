@@ -1,8 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   Users,
-  Link as LinkIcon,
-  ClipboardList,
   MessageSquare,
   CalendarDays,
   LogOut,
@@ -12,8 +10,6 @@ import { useAuth } from '../hooks/useAuth';
 
 const navItems = [
   { to: '/leads', label: 'Base de Leads', icon: Users },
-  { to: '/form/sorteio', label: 'Form Sorteio', icon: LinkIcon },
-  { to: '/form/consultor', label: 'Form Consultor', icon: ClipboardList },
   { to: '/templates', label: 'Templates', icon: MessageSquare },
 ];
 
