@@ -49,6 +49,28 @@ function leadToDb(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Record<st
   };
 }
 
+// Para upsert: inclui apenas campos com valor real para não sobrescrever dados existentes
+function leadToDbUpsert(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Record<string, unknown> {
+  const db: Record<string, unknown> = { telefone: lead.telefone };
+  if (lead.origem)         db.origem         = lead.origem;
+  if (lead.stage)          db.stage          = lead.stage;
+  if (lead.nome)           db.nome           = lead.nome;
+  if (lead.email)          db.email          = lead.email;
+  if (lead.nomeEscola)     db.nome_escola    = lead.nomeEscola;
+  if (lead.relacaoEscola)  db.relacao_escola = lead.relacaoEscola;
+  if (lead.estado)         db.estado         = lead.estado;
+  if (lead.cidade)         db.cidade         = lead.cidade;
+  if (lead.porteAlunos)    db.porte_alunos   = lead.porteAlunos;
+  if (lead.maiorInteresse) db.maior_interesse = lead.maiorInteresse;
+  if (lead.redeEnsino)     db.rede_ensino    = lead.redeEnsino;
+  if (lead.nivelInteresse) db.nivel_interesse = lead.nivelInteresse;
+  if (lead.nomeConsultor)  db.nome_consultor = lead.nomeConsultor;
+  if (lead.observacoes)    db.observacoes    = lead.observacoes;
+  // ja_e_cliente: só atualiza quando explicitamente true (evita apagar "Sim" ao reimportar sem a coluna)
+  if (lead.jaECliente === true) db.ja_e_cliente = true;
+  return db;
+}
+
 function partialLeadToDb(updates: Partial<Lead>): Record<string, unknown> {
   const db: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (updates.nome !== undefined) db.nome = updates.nome;
@@ -158,16 +180,18 @@ export function useLeads() {
   const importLeads = async (
     rows: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>[]
   ): Promise<{ inserted: number; failed: number }> => {
-    const BATCH = 500; // evita estourar o limite de payload do PostgREST
-    let totalInserted = 0;
+    const BATCH = 500;
+    let totalProcessed = 0;
     let totalFailed = 0;
 
     for (let i = 0; i < rows.length; i += BATCH) {
-      const batch = rows.slice(i, i + BATCH).map(leadToDb);
+      const batch = rows.slice(i, i + BATCH).map(leadToDbUpsert);
+
+      // upsert: insere se telefone novo, atualiza campos fornecidos se já existir
       const { data, error } = await supabase
         .from('leads')
-        .insert(batch)
-        .select();
+        .upsert(batch, { onConflict: 'telefone', ignoreDuplicates: false })
+        .select('id');
 
       if (error) {
         console.error(`importLeads batch ${i / BATCH + 1} error:`, error.message);
@@ -175,17 +199,13 @@ export function useLeads() {
         continue;
       }
 
-      const inserted = data?.length ?? 0;
-      totalInserted += inserted;
-      totalFailed += batch.length - inserted;
-
-      if (data) {
-        const newLeads = data.map((row) => dbToLead(row as Record<string, unknown>));
-        setLeads((prev) => [...newLeads, ...prev]);
-      }
+      totalProcessed += data?.length ?? batch.length;
     }
 
-    return { inserted: totalInserted, failed: totalFailed };
+    // Recarrega tudo do banco para refletir inserts + updates corretamente
+    await fetchLeads();
+
+    return { inserted: totalProcessed, failed: totalFailed };
   };
 
   return { leads, loading, saveLead, updateLead, updateLeadStage, deleteLead, importLeads, refetch: fetchLeads };
