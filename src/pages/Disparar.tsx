@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Send, Users, AlertTriangle, CheckCircle, Link2, MessageCircle,
-  ShieldCheck,
+  ShieldCheck, ChevronDown, ChevronUp, Check,
 } from 'lucide-react';
 import { useLeads } from '../hooks/useLeads';
 import type { Lead } from '../types/lead';
@@ -46,8 +46,6 @@ const SEGMENTOS: Segmento[] = [
   { id: 'negociacao',   label: 'Em negociação',         filtros: { stages: ['negociacao'] } },
   { id: 'aquecimento',  label: 'Aquecimento',           filtros: { stages: ['aquecimento'] } },
   { id: 'clientes',     label: 'Já é cliente',          filtros: { jaECliente: 'sim' } },
-  { id: 'sorteio',      label: 'Origem: sorteio',       filtros: { origens: ['sorteio'] } },
-  { id: 'consultor',    label: 'Origem: consultor',     filtros: { origens: ['consultor'] } },
   { id: 'convertidos',  label: 'Convertidos',           filtros: { stages: ['convertido'] } },
   { id: 'novos',        label: 'Novos leads',           filtros: { stages: ['novo'] } },
 ];
@@ -67,6 +65,99 @@ function applyFiltros(leads: Lead[], f: Filtros): Lead[] {
     if (f.estados.length   && (!l.estado || !f.estados.includes(l.estado)))                        return false;
     return true;
   });
+}
+
+// ─── Multi-select Origem ──────────────────────────────────────────────────────
+
+interface OrigemMultiSelectProps {
+  options: string[];
+  selected: string[];
+  onChange: (values: string[]) => void;
+}
+
+function OrigemMultiSelect({ options, selected, onChange }: OrigemMultiSelectProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const toggle = (v: string) => {
+    onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
+  };
+
+  const label =
+    selected.length === 0
+      ? 'Todas as origens'
+      : selected.length === 1
+      ? selected[0]
+      : `${selected.length} origens selecionadas`;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center justify-between gap-2 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white hover:border-gray-300 transition-colors"
+      >
+        <span className={selected.length > 0 ? 'text-primary-700 font-medium' : 'text-gray-500'}>
+          {label}
+        </span>
+        <ChevronDown size={14} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          {options.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-gray-400">Nenhuma origem disponível</p>
+          ) : (
+            <>
+              {options.map((opt) => {
+                const checked = selected.includes(opt);
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => toggle(opt)}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <span
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                        checked
+                          ? 'bg-primary-600 border-primary-600'
+                          : 'border-gray-300 bg-white'
+                      }`}
+                    >
+                      {checked && <Check size={10} className="text-white" />}
+                    </span>
+                    <span className={checked ? 'text-primary-700 font-medium' : 'text-gray-700'}>
+                      {opt}
+                    </span>
+                  </button>
+                );
+              })}
+              {selected.length > 0 && (
+                <div className="border-t border-gray-100 px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => onChange([])}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    Limpar seleção
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── WhatsApp Preview ─────────────────────────────────────────────────────────
@@ -151,15 +242,22 @@ export default function Disparar() {
   const { leads } = useLeads();
 
   const [segmentoId, setSegmentoId] = useState<string>('todos');
+  const [origemFilter, setOrigemFilter] = useState<string[]>([]);
+  const [pubAlvoOpen, setPubAlvoOpen] = useState(false);
+  const [listaOpen, setListaOpen] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<'success' | 'error' | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // redirect se não tem template
   useEffect(() => {
     if (!template) navigate('/templates', { replace: true });
   }, [template, navigate]);
+
+  const todasOrigens = useMemo(() => {
+    const set = new Set(leads.map((l) => l.origem).filter(Boolean));
+    return Array.from(set).sort();
+  }, [leads]);
 
   const filtros: Filtros = useMemo(() => {
     const seg = SEGMENTOS.find((s) => s.id === segmentoId);
@@ -167,12 +265,18 @@ export default function Disparar() {
     return { ...FILTROS_VAZIOS, ...seg.filtros };
   }, [segmentoId]);
 
-  const leadsAlvo = useMemo(() => applyFiltros(leads, filtros), [leads, filtros]);
+  const leadsAlvo = useMemo(() => {
+    let result = applyFiltros(leads, filtros);
+    if (origemFilter.length > 0) {
+      result = result.filter((l) => origemFilter.includes(l.origem));
+    }
+    return result;
+  }, [leads, filtros, origemFilter]);
 
   if (!template) return null;
 
   const corpo = getTemplateBody(template.components);
-
+  const segmentoLabel = SEGMENTOS.find((s) => s.id === segmentoId)?.label ?? segmentoId;
   const stageLabel = (id: string) => STAGES.find((s) => s.id === id)?.title ?? id;
 
   const handleEnviar = async () => {
@@ -247,37 +351,80 @@ export default function Disparar() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
 
-          {/* ── Público-alvo ── */}
-          <section className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center gap-2 mb-1">
-              <Users size={16} className="text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-800">Público-alvo</h2>
-            </div>
-            <p className="text-xs text-gray-500 mb-4">Selecione um segmento de leads para o disparo.</p>
+          {/* ── Público-alvo (colapsável) ── */}
+          <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {/* Cabeçalho clicável */}
+            <button
+              type="button"
+              onClick={() => setPubAlvoOpen((o) => !o)}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-gray-500" />
+                <h2 className="text-sm font-semibold text-gray-800">Público-alvo</h2>
+                {!pubAlvoOpen && (
+                  <span className="ml-2 text-xs text-primary-600 font-medium bg-primary-50 px-2 py-0.5 rounded-full">
+                    {segmentoLabel}
+                    {origemFilter.length > 0 && ` · ${origemFilter.length} origem(ns)`}
+                    {' '}— {leadsAlvo.length} lead{leadsAlvo.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              {pubAlvoOpen ? (
+                <ChevronUp size={16} className="text-gray-400" />
+              ) : (
+                <ChevronDown size={16} className="text-gray-400" />
+              )}
+            </button>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {SEGMENTOS.map((seg) => {
-                const count = applyFiltros(leads, { ...FILTROS_VAZIOS, ...seg.filtros }).length;
-                const selected = segmentoId === seg.id;
-                return (
-                  <button
-                    key={seg.id}
-                    type="button"
-                    onClick={() => { setSegmentoId(seg.id); setConfirmado(false); }}
-                    className={`text-left px-4 py-3 rounded-lg border text-sm transition-all ${
-                      selected
-                        ? 'border-primary-500 bg-primary-50 text-primary-700 font-medium shadow-sm'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="block text-xs font-semibold">{seg.label}</span>
-                    <span className={`text-xs mt-0.5 block ${selected ? 'text-primary-500' : 'text-gray-400'}`}>
-                      {count} lead{count !== 1 ? 's' : ''}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            {pubAlvoOpen && (
+              <div className="px-5 pb-5 space-y-4 border-t border-gray-100">
+                {/* Filtro por Origem */}
+                <div className="pt-4">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                    Filtrar por Origem
+                  </label>
+                  <OrigemMultiSelect
+                    options={todasOrigens}
+                    selected={origemFilter}
+                    onChange={(v) => { setOrigemFilter(v); setConfirmado(false); }}
+                  />
+                </div>
+
+                {/* Segmentos */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                    Segmento
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {SEGMENTOS.map((seg) => {
+                      const baseLeads = applyFiltros(leads, { ...FILTROS_VAZIOS, ...seg.filtros });
+                      const count = origemFilter.length > 0
+                        ? baseLeads.filter((l) => origemFilter.includes(l.origem)).length
+                        : baseLeads.length;
+                      const selected = segmentoId === seg.id;
+                      return (
+                        <button
+                          key={seg.id}
+                          type="button"
+                          onClick={() => { setSegmentoId(seg.id); setConfirmado(false); }}
+                          className={`text-left px-4 py-3 rounded-lg border text-sm transition-all ${
+                            selected
+                              ? 'border-primary-500 bg-primary-50 text-primary-700 font-medium shadow-sm'
+                              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="block text-xs font-semibold">{seg.label}</span>
+                          <span className={`text-xs mt-0.5 block ${selected ? 'text-primary-500' : 'text-gray-400'}`}>
+                            {count} lead{count !== 1 ? 's' : ''}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* ── Verificações de segurança ── */}
@@ -288,7 +435,6 @@ export default function Disparar() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Contatos afetados */}
               <div className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg">
                 <Users size={18} className="text-gray-400 shrink-0" />
                 <div>
@@ -297,7 +443,6 @@ export default function Disparar() {
                 </div>
               </div>
 
-              {/* Aviso se zero */}
               {leadsAlvo.length === 0 ? (
                 <div className="flex items-center gap-3 px-4 py-3 border border-red-200 bg-red-50 rounded-lg">
                   <AlertTriangle size={18} className="text-red-500 shrink-0" />
@@ -316,7 +461,6 @@ export default function Disparar() {
                 </div>
               )}
 
-              {/* Template */}
               <div className="flex items-start gap-3 px-4 py-3 border border-gray-200 rounded-lg">
                 <Send size={18} className="text-gray-400 shrink-0 mt-0.5" />
                 <div className="min-w-0">
@@ -326,7 +470,6 @@ export default function Disparar() {
               </div>
             </div>
 
-            {/* Confirmação */}
             <label className="flex items-center gap-2.5 mt-4 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -341,52 +484,71 @@ export default function Disparar() {
             </label>
           </section>
 
-          {/* ── Lista de leads ── */}
+          {/* ── Lista de leads (colapsável) ── */}
           <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setListaOpen((o) => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
               <span className="text-sm font-medium text-gray-700">
                 {leadsAlvo.length} de {leads.length} leads selecionados
               </span>
-              <span className="text-xs text-gray-400">
-                {leadsAlvo.length > 100 ? `Exibindo 100 de ${leadsAlvo.length}` : `Exibindo ${leadsAlvo.length}`}
-              </span>
-            </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">
+                  {listaOpen
+                    ? 'Ocultar lista'
+                    : leadsAlvo.length > 100
+                    ? `Ver 100 de ${leadsAlvo.length}`
+                    : `Ver ${leadsAlvo.length}`}
+                </span>
+                {listaOpen ? (
+                  <ChevronUp size={14} className="text-gray-400" />
+                ) : (
+                  <ChevronDown size={14} className="text-gray-400" />
+                )}
+              </div>
+            </button>
 
-            {leadsAlvo.length === 0 ? (
-              <div className="py-10 text-center">
-                <p className="text-sm text-gray-400">Nenhum lead neste segmento.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-white border-b border-gray-100">
-                      <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Nome</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Escola</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Telefone</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Estado</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Etapa</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {leadsAlvo.slice(0, 100).map((l) => (
-                      <tr key={l.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-2.5 font-medium text-gray-800">{l.nome}</td>
-                        <td className="px-4 py-2.5 text-gray-500">{l.nomeEscola ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-gray-500">{l.telefone}</td>
-                        <td className="px-4 py-2.5 text-gray-500">{l.estado ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-gray-500">{stageLabel(l.stage)}</td>
-                        <td className="px-4 py-2.5">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700">
-                            OK
-                          </span>
-                        </td>
+            {listaOpen && (
+              leadsAlvo.length === 0 ? (
+                <div className="py-10 text-center">
+                  <p className="text-sm text-gray-400">Nenhum lead neste segmento.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-white border-b border-gray-100">
+                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Nome</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Escola</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Telefone</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Origem</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Estado</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Etapa</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {leadsAlvo.slice(0, 100).map((l) => (
+                        <tr key={l.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-2.5 font-medium text-gray-800">{l.nome || '—'}</td>
+                          <td className="px-4 py-2.5 text-gray-500">{l.nomeEscola ?? '—'}</td>
+                          <td className="px-4 py-2.5 text-gray-500">{l.telefone}</td>
+                          <td className="px-4 py-2.5 text-gray-500">{l.origem}</td>
+                          <td className="px-4 py-2.5 text-gray-500">{l.estado ?? '—'}</td>
+                          <td className="px-4 py-2.5 text-gray-500">{stageLabel(l.stage)}</td>
+                          <td className="px-4 py-2.5">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700">
+                              OK
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             )}
           </section>
 
@@ -401,7 +563,6 @@ export default function Disparar() {
                 className="w-full max-w-sm bg-white rounded-xl shadow-md overflow-hidden flex flex-col"
                 style={{ minHeight: '400px' }}
               >
-                {/* WA header */}
                 <div className="bg-[#075E54] text-white px-4 py-3 flex items-center gap-3">
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-xs font-bold">
                     AE
@@ -412,7 +573,6 @@ export default function Disparar() {
                   </div>
                 </div>
                 <WhatsAppBubble components={template.components} />
-                {/* WA input bar */}
                 <div className="bg-[#F0F0F0] px-3 py-2 flex items-center gap-2">
                   <div className="flex-1 bg-white rounded-full px-4 py-2 text-xs text-gray-400">
                     Mensagem
@@ -425,7 +585,6 @@ export default function Disparar() {
             </div>
           </section>
 
-          {/* Espaço para o sticky footer */}
           <div className="h-20" />
         </div>
       </div>
