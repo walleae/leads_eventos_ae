@@ -78,15 +78,30 @@ export function useLeads() {
 
   const fetchLeads = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data) {
-      setLeads(data.map((row) => dbToLead(row as Record<string, unknown>)));
-    } else if (error) {
-      console.error('useLeads fetchLeads error:', error.message);
+    const PAGE = 1000;
+    const all: Lead[] = [];
+    let from = 0;
+
+    // Pagina até buscar todos os registros (Supabase limita 1000/página por padrão)
+    while (true) {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE - 1);
+
+      if (error) {
+        console.error('useLeads fetchLeads error:', error.message);
+        break;
+      }
+      if (!data || data.length === 0) break;
+
+      all.push(...data.map((row) => dbToLead(row as Record<string, unknown>)));
+      if (data.length < PAGE) break; // última página
+      from += PAGE;
     }
+
+    setLeads(all);
     setLoading(false);
   };
 
@@ -143,21 +158,34 @@ export function useLeads() {
   const importLeads = async (
     rows: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>[]
   ): Promise<{ inserted: number; failed: number }> => {
-    const dbRows = rows.map(leadToDb);
-    const { data, error } = await supabase
-      .from('leads')
-      .insert(dbRows)
-      .select();
-    if (error) {
-      console.error('importLeads error:', error.message);
-      return { inserted: 0, failed: rows.length };
+    const BATCH = 500; // evita estourar o limite de payload do PostgREST
+    let totalInserted = 0;
+    let totalFailed = 0;
+
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH).map(leadToDb);
+      const { data, error } = await supabase
+        .from('leads')
+        .insert(batch)
+        .select();
+
+      if (error) {
+        console.error(`importLeads batch ${i / BATCH + 1} error:`, error.message);
+        totalFailed += batch.length;
+        continue;
+      }
+
+      const inserted = data?.length ?? 0;
+      totalInserted += inserted;
+      totalFailed += batch.length - inserted;
+
+      if (data) {
+        const newLeads = data.map((row) => dbToLead(row as Record<string, unknown>));
+        setLeads((prev) => [...newLeads, ...prev]);
+      }
     }
-    const inserted = data?.length ?? 0;
-    if (data) {
-      const newLeads = data.map((row) => dbToLead(row as Record<string, unknown>));
-      setLeads((prev) => [...newLeads, ...prev]);
-    }
-    return { inserted, failed: rows.length - inserted };
+
+    return { inserted: totalInserted, failed: totalFailed };
   };
 
   return { leads, loading, saveLead, updateLead, updateLeadStage, deleteLead, importLeads, refetch: fetchLeads };
