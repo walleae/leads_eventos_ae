@@ -243,16 +243,24 @@ export default function Disparar() {
 
   const [segmentoId, setSegmentoId] = useState<string>('todos');
   const [origemFilter, setOrigemFilter] = useState<string[]>([]);
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [pubAlvoOpen, setPubAlvoOpen] = useState(false);
   const [listaOpen, setListaOpen] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<'success' | 'error' | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [enviadoCount, setEnviadoCount] = useState(0);
 
   useEffect(() => {
     if (!template) navigate('/templates', { replace: true });
   }, [template, navigate]);
+
+  // Limpa exclusões quando o filtro muda
+  useEffect(() => {
+    setExcludedIds(new Set());
+    setConfirmado(false);
+  }, [segmentoId, origemFilter]);
 
   const todasOrigens = useMemo(() => {
     const set = new Set(leads.map((l) => l.origem).filter(Boolean));
@@ -273,6 +281,41 @@ export default function Disparar() {
     return result;
   }, [leads, filtros, origemFilter]);
 
+  // Leads que realmente serão enviados (descontando excluídos manualmente)
+  const leadsEnvio = useMemo(
+    () => leadsAlvo.filter((l) => !excludedIds.has(l.id)),
+    [leadsAlvo, excludedIds]
+  );
+
+  const toggleExclude = (id: string) => {
+    setExcludedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    setConfirmado(false);
+  };
+
+  const reincluirTodos = () => {
+    setExcludedIds(new Set());
+    setConfirmado(false);
+  };
+
+  // Marcar/desmarcar todos os visíveis
+  const toggleTodosVisiveis = (visíveis: Lead[]) => {
+    const todosChecked = visíveis.every((l) => !excludedIds.has(l.id));
+    setExcludedIds((prev) => {
+      const next = new Set(prev);
+      if (todosChecked) {
+        visíveis.forEach((l) => next.add(l.id));
+      } else {
+        visíveis.forEach((l) => next.delete(l.id));
+      }
+      return next;
+    });
+    setConfirmado(false);
+  };
+
   if (!template) return null;
 
   const corpo = getTemplateBody(template.components);
@@ -289,8 +332,8 @@ export default function Disparar() {
         has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
         image_url: supabaseImageUrl,
         segmento: segmentoId,
-        telefones: leadsAlvo.map((l) => l.telefone).join(','),
-        leads: leadsAlvo.map((l) => ({
+        telefones: leadsEnvio.map((l) => l.telefone).join(','),
+        leads: leadsEnvio.map((l) => ({
           id: l.id,
           nome: l.nome,
           telefone: l.telefone,
@@ -300,6 +343,7 @@ export default function Disparar() {
           estado: l.estado,
         })),
       });
+      setEnviadoCount(leadsEnvio.length);
       setResult('success');
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Erro ao disparar');
@@ -318,7 +362,7 @@ export default function Disparar() {
         <div className="text-center">
           <p className="text-lg font-bold text-gray-900">Disparo enviado com sucesso!</p>
           <p className="text-sm text-gray-500 mt-1">
-            {leadsAlvo.length} lead{leadsAlvo.length !== 1 ? 's' : ''} notificado{leadsAlvo.length !== 1 ? 's' : ''} com o template <strong>{template.name}</strong>.
+            {enviadoCount} lead{enviadoCount !== 1 ? 's' : ''} notificado{enviadoCount !== 1 ? 's' : ''} com o template <strong>{template.name}</strong>.
           </p>
         </div>
         <button
@@ -439,11 +483,14 @@ export default function Disparar() {
                 <Users size={18} className="text-gray-400 shrink-0" />
                 <div>
                   <p className="text-xs text-gray-500">Leads afetados</p>
-                  <p className="text-xl font-bold text-gray-900">{leadsAlvo.length}</p>
+                  <p className="text-xl font-bold text-gray-900">{leadsEnvio.length}</p>
+                  {excludedIds.size > 0 && (
+                    <p className="text-xs text-amber-600">{excludedIds.size} excluído{excludedIds.size !== 1 ? 's' : ''} manualmente</p>
+                  )}
                 </div>
               </div>
 
-              {leadsAlvo.length === 0 ? (
+              {leadsEnvio.length === 0 ? (
                 <div className="flex items-center gap-3 px-4 py-3 border border-red-200 bg-red-50 rounded-lg">
                   <AlertTriangle size={18} className="text-red-500 shrink-0" />
                   <div>
@@ -456,7 +503,7 @@ export default function Disparar() {
                   <CheckCircle size={18} className="text-green-500 shrink-0" />
                   <div>
                     <p className="text-xs text-green-600 font-medium">Segmento OK</p>
-                    <p className="text-xs text-green-500">{leadsAlvo.length} lead{leadsAlvo.length !== 1 ? 's' : ''} válido{leadsAlvo.length !== 1 ? 's' : ''}</p>
+                    <p className="text-xs text-green-500">{leadsEnvio.length} lead{leadsEnvio.length !== 1 ? 's' : ''} válido{leadsEnvio.length !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
               )}
@@ -475,80 +522,137 @@ export default function Disparar() {
                 type="checkbox"
                 checked={confirmado}
                 onChange={(e) => setConfirmado(e.target.checked)}
-                disabled={leadsAlvo.length === 0}
+                disabled={leadsEnvio.length === 0}
                 className="w-4 h-4 rounded border-gray-300 text-primary-600 accent-primary-600"
               />
               <span className="text-sm text-gray-700">
-                Confirmo o envio para <strong>{leadsAlvo.length} lead{leadsAlvo.length !== 1 ? 's' : ''}</strong>
+                Confirmo o envio para <strong>{leadsEnvio.length} lead{leadsEnvio.length !== 1 ? 's' : ''}</strong>
+                {excludedIds.size > 0 && (
+                  <span className="text-gray-400 font-normal"> ({excludedIds.size} excluído{excludedIds.size !== 1 ? 's' : ''})</span>
+                )}
               </span>
             </label>
           </section>
 
-          {/* ── Lista de leads (colapsável) ── */}
+          {/* ── Lista de leads (colapsável + seleção individual) ── */}
           <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setListaOpen((o) => !o)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
-            >
-              <span className="text-sm font-medium text-gray-700">
-                {leadsAlvo.length} de {leads.length} leads selecionados
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">
-                  {listaOpen
-                    ? 'Ocultar lista'
-                    : leadsAlvo.length > 100
-                    ? `Ver 100 de ${leadsAlvo.length}`
-                    : `Ver ${leadsAlvo.length}`}
-                </span>
+            {/* Cabeçalho da lista */}
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <button
+                type="button"
+                onClick={() => setListaOpen((o) => !o)}
+                className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+              >
                 {listaOpen ? (
                   <ChevronUp size={14} className="text-gray-400" />
                 ) : (
                   <ChevronDown size={14} className="text-gray-400" />
                 )}
+                <span className="text-sm font-medium text-gray-700">
+                  {leadsEnvio.length} de {leadsAlvo.length} selecionados
+                  {excludedIds.size > 0 && (
+                    <span className="ml-1 text-amber-600">({excludedIds.size} excluído{excludedIds.size !== 1 ? 's' : ''})</span>
+                  )}
+                </span>
+              </button>
+              <div className="flex items-center gap-3">
+                {excludedIds.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={reincluirTodos}
+                    className="text-xs text-primary-600 hover:underline font-medium"
+                  >
+                    Reincluir todos
+                  </button>
+                )}
+                {!listaOpen && leadsAlvo.length > 0 && (
+                  <span className="text-xs text-gray-400">
+                    {leadsAlvo.length > 200 ? `Clique para ver 200 de ${leadsAlvo.length}` : `Clique para ver ${leadsAlvo.length}`}
+                  </span>
+                )}
               </div>
-            </button>
+            </div>
 
             {listaOpen && (
               leadsAlvo.length === 0 ? (
                 <div className="py-10 text-center">
                   <p className="text-sm text-gray-400">Nenhum lead neste segmento.</p>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-white border-b border-gray-100">
-                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Nome</th>
-                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Escola</th>
-                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Telefone</th>
-                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Origem</th>
-                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Estado</th>
-                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Etapa</th>
-                        <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {leadsAlvo.slice(0, 100).map((l) => (
-                        <tr key={l.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-2.5 font-medium text-gray-800">{l.nome || '—'}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{l.nomeEscola ?? '—'}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{l.telefone}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{l.origem}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{l.estado ?? '—'}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{stageLabel(l.stage)}</td>
-                          <td className="px-4 py-2.5">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700">
-                              OK
-                            </span>
-                          </td>
+              ) : (() => {
+                const visiveis = leadsAlvo.slice(0, 200);
+                const todosVisivelChecked = visiveis.every((l) => !excludedIds.has(l.id));
+                const algunsVisivelChecked = visiveis.some((l) => !excludedIds.has(l.id));
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-white border-b border-gray-100">
+                          <th className="px-4 py-2.5 w-10">
+                            <input
+                              type="checkbox"
+                              checked={todosVisivelChecked}
+                              ref={(el) => { if (el) el.indeterminate = !todosVisivelChecked && algunsVisivelChecked; }}
+                              onChange={() => toggleTodosVisiveis(visiveis)}
+                              className="w-3.5 h-3.5 rounded border-gray-300 accent-primary-600 cursor-pointer"
+                              title="Marcar/desmarcar todos visíveis"
+                            />
+                          </th>
+                          <th className="text-left px-2 py-2.5 font-semibold text-gray-500">Nome</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Escola</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Telefone</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Origem</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Estado</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Etapa</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {visiveis.map((l) => {
+                          const excluido = excludedIds.has(l.id);
+                          return (
+                            <tr
+                              key={l.id}
+                              onClick={() => toggleExclude(l.id)}
+                              className={`cursor-pointer transition-colors ${excluido ? 'bg-gray-50 opacity-50' : 'hover:bg-blue-50/40'}`}
+                            >
+                              <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  checked={!excluido}
+                                  onChange={() => toggleExclude(l.id)}
+                                  className="w-3.5 h-3.5 rounded border-gray-300 accent-primary-600 cursor-pointer"
+                                />
+                              </td>
+                              <td className={`px-2 py-2.5 font-medium ${excluido ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{l.nome || '—'}</td>
+                              <td className="px-4 py-2.5 text-gray-500">{l.nomeEscola ?? '—'}</td>
+                              <td className="px-4 py-2.5 text-gray-500">{l.telefone}</td>
+                              <td className="px-4 py-2.5 text-gray-500">{l.origem}</td>
+                              <td className="px-4 py-2.5 text-gray-500">{l.estado ?? '—'}</td>
+                              <td className="px-4 py-2.5 text-gray-500">{stageLabel(l.stage)}</td>
+                              <td className="px-4 py-2.5">
+                                {excluido ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-400">
+                                    Skip
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700">
+                                    OK
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {leadsAlvo.length > 200 && (
+                      <p className="text-xs text-gray-400 text-center py-3 border-t border-gray-100">
+                        Exibindo 200 de {leadsAlvo.length} leads. Use os filtros de segmento e origem para refinar.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()
             )}
           </section>
 
@@ -601,16 +705,16 @@ export default function Disparar() {
           <p className="text-sm text-gray-500">
             {!confirmado
               ? 'Confirme o envio acima para liberar o botão.'
-              : `Pronto para enviar para ${leadsAlvo.length} lead${leadsAlvo.length !== 1 ? 's' : ''}.`}
+              : `Pronto para enviar para ${leadsEnvio.length} lead${leadsEnvio.length !== 1 ? 's' : ''}.`}
           </p>
         )}
         <button
           onClick={handleEnviar}
-          disabled={!confirmado || leadsAlvo.length === 0 || sending}
+          disabled={!confirmado || leadsEnvio.length === 0 || sending}
           className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-pink-500 hover:bg-pink-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
         >
           <Send size={15} />
-          {sending ? 'Enviando...' : `Enviar para ${leadsAlvo.length} lead${leadsAlvo.length !== 1 ? 's' : ''}`}
+          {sending ? 'Enviando...' : `Enviar para ${leadsEnvio.length} lead${leadsEnvio.length !== 1 ? 's' : ''}`}
         </button>
       </div>
     </div>
