@@ -49,25 +49,32 @@ function leadToDb(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Record<st
   };
 }
 
-// Para upsert: inclui apenas campos com valor real para não sobrescrever dados existentes
+// Para upsert: inclui apenas campos com valor real para não sobrescrever dados existentes.
+// Campos obrigatórios para INSERT (telefone, stage, ja_e_cliente) sempre incluídos.
+// Colunas nome/email/nome_escola/relacao_escola devem ser nullable no banco:
+//   ALTER TABLE leads ALTER COLUMN nome DROP NOT NULL;
+//   ALTER TABLE leads ALTER COLUMN email DROP NOT NULL;
+//   ALTER TABLE leads ALTER COLUMN nome_escola DROP NOT NULL;
+//   ALTER TABLE leads ALTER COLUMN relacao_escola DROP NOT NULL;
 function leadToDbUpsert(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Record<string, unknown> {
-  const db: Record<string, unknown> = { telefone: lead.telefone };
-  if (lead.origem)         db.origem         = lead.origem;
-  if (lead.stage)          db.stage          = lead.stage;
-  if (lead.nome)           db.nome           = lead.nome;
-  if (lead.email)          db.email          = lead.email;
-  if (lead.nomeEscola)     db.nome_escola    = lead.nomeEscola;
-  if (lead.relacaoEscola)  db.relacao_escola = lead.relacaoEscola;
-  if (lead.estado)         db.estado         = lead.estado;
-  if (lead.cidade)         db.cidade         = lead.cidade;
-  if (lead.porteAlunos)    db.porte_alunos   = lead.porteAlunos;
+  const db: Record<string, unknown> = {
+    telefone:    lead.telefone,
+    stage:       lead.stage || 'novo',
+    ja_e_cliente: lead.jaECliente === true, // false é valor válido para novo registro
+  };
+  if (lead.origem)         db.origem          = lead.origem;
+  if (lead.nome)           db.nome            = lead.nome;
+  if (lead.email)          db.email           = lead.email;
+  if (lead.nomeEscola)     db.nome_escola     = lead.nomeEscola;
+  if (lead.relacaoEscola)  db.relacao_escola  = lead.relacaoEscola;
+  if (lead.estado)         db.estado          = lead.estado;
+  if (lead.cidade)         db.cidade          = lead.cidade;
+  if (lead.porteAlunos)    db.porte_alunos    = lead.porteAlunos;
   if (lead.maiorInteresse) db.maior_interesse = lead.maiorInteresse;
-  if (lead.redeEnsino)     db.rede_ensino    = lead.redeEnsino;
+  if (lead.redeEnsino)     db.rede_ensino     = lead.redeEnsino;
   if (lead.nivelInteresse) db.nivel_interesse = lead.nivelInteresse;
-  if (lead.nomeConsultor)  db.nome_consultor = lead.nomeConsultor;
-  if (lead.observacoes)    db.observacoes    = lead.observacoes;
-  // ja_e_cliente: só atualiza quando explicitamente true (evita apagar "Sim" ao reimportar sem a coluna)
-  if (lead.jaECliente === true) db.ja_e_cliente = true;
+  if (lead.nomeConsultor)  db.nome_consultor  = lead.nomeConsultor;
+  if (lead.observacoes)    db.observacoes     = lead.observacoes;
   return db;
 }
 
