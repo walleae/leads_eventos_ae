@@ -738,7 +738,7 @@ const EMPTY_FILTERS: Filters = {
 };
 
 export default function Leads() {
-  const { leads, saveLead, updateLead, updateLeadStage, deleteLead, importLeads } = useLeads();
+  const { leads, saveLead, updateLead, deleteLead, importLeads } = useLeads();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [disparoLead, setDisparoLead] = useState<Lead | null>(null);
   const [editLead, setEditLead] = useState<Lead | null>(null);
