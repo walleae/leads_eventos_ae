@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Send, Users, AlertTriangle, CheckCircle, Link2, MessageCircle,
-  ShieldCheck, ChevronDown, ChevronUp, Check,
+  ShieldCheck, ChevronDown, ChevronUp, Check, Calendar,
 } from 'lucide-react';
 import { useLeads } from '../hooks/useLeads';
 import type { Lead } from '../types/lead';
@@ -10,6 +10,7 @@ import { STAGES } from '../types/lead';
 import { dispararMensagem } from '../lib/webhook';
 import { getTemplateBody, getTemplateHeaderImageUrl } from '../lib/meta';
 import type { MetaTemplateFull, MetaTemplateComponent } from '../lib/meta';
+import { supabase } from '../lib/supabase';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -249,6 +250,9 @@ export default function Disparar() {
   const [result, setResult] = useState<'success' | 'error' | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [enviadoCount, setEnviadoCount] = useState(0);
+  const [modoEnvio, setModoEnvio] = useState<'imediato' | 'agendado'>('imediato');
+  const [dataAgendamento, setDataAgendamento] = useState('');
+  const [agendadoPara, setAgendadoPara] = useState('');
 
   useEffect(() => {
     if (!template) navigate('/templates', { replace: true });
@@ -325,29 +329,56 @@ export default function Disparar() {
 
   const handleEnviar = async () => {
     if (!confirmado) return;
+    if (modoEnvio === 'agendado') {
+      if (!dataAgendamento) {
+        setErrorMsg('Selecione uma data e hora para o agendamento.');
+        setResult('error');
+        return;
+      }
+      if (new Date(dataAgendamento) <= new Date()) {
+        setErrorMsg('A data e hora do agendamento deve ser no futuro.');
+        setResult('error');
+        return;
+      }
+    }
     setSending(true);
+    const leadsPayload = leadsEnvio.map((l) => ({
+      id: l.id,
+      nome: l.nome,
+      telefone: l.telefone,
+      email: l.email,
+      nomeEscola: l.nomeEscola,
+      stage: l.stage,
+      estado: l.estado,
+    }));
     try {
-      await dispararMensagem({
-        template_nome: template.name,
-        template_corpo: corpo,
-        has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
-        image_url: supabaseImageUrl,
-        segmento: segmentoIds.join(',') || 'todos',
-        telefones: leadsEnvio.map((l) => l.telefone).join(','),
-        leads: leadsEnvio.map((l) => ({
-          id: l.id,
-          nome: l.nome,
-          telefone: l.telefone,
-          email: l.email,
-          nomeEscola: l.nomeEscola,
-          stage: l.stage,
-          estado: l.estado,
-        })),
-      });
+      if (modoEnvio === 'imediato') {
+        await dispararMensagem({
+          template_nome: template.name,
+          template_corpo: corpo,
+          has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
+          image_url: supabaseImageUrl,
+          segmento: segmentoIds.join(',') || 'todos',
+          telefones: leadsEnvio.map((l) => l.telefone).join(','),
+          leads: leadsPayload,
+        });
+      } else {
+        const { error } = await supabase.from('disparos_agendados').insert({
+          template_nome: template.name,
+          template_corpo: corpo,
+          has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
+          image_url: supabaseImageUrl ?? null,
+          segmento: segmentoIds.join(',') || 'todos',
+          leads_json: leadsPayload,
+          agendar_para: new Date(dataAgendamento).toISOString(),
+        });
+        if (error) throw new Error(error.message);
+        setAgendadoPara(dataAgendamento);
+      }
       setEnviadoCount(leadsEnvio.length);
       setResult('success');
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Erro ao disparar');
+      setErrorMsg(err instanceof Error ? err.message : 'Erro ao processar');
       setResult('error');
     } finally {
       setSending(false);
@@ -358,13 +389,28 @@ export default function Disparar() {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-4 bg-white">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-          <CheckCircle size={28} className="text-green-600" />
+          {modoEnvio === 'agendado'
+            ? <Calendar size={28} className="text-green-600" />
+            : <CheckCircle size={28} className="text-green-600" />}
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-gray-900">Disparo enviado com sucesso!</p>
-          <p className="text-sm text-gray-500 mt-1">
-            {enviadoCount} lead{enviadoCount !== 1 ? 's' : ''} notificado{enviadoCount !== 1 ? 's' : ''} com o template <strong>{template.name}</strong>.
-          </p>
+          {modoEnvio === 'agendado' ? (
+            <>
+              <p className="text-lg font-bold text-gray-900">Disparo agendado!</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {enviadoCount} lead{enviadoCount !== 1 ? 's' : ''} receberão o template{' '}
+                <strong>{template.name}</strong> em{' '}
+                {new Date(agendadoPara).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-bold text-gray-900">Disparo enviado com sucesso!</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {enviadoCount} lead{enviadoCount !== 1 ? 's' : ''} notificado{enviadoCount !== 1 ? 's' : ''} com o template <strong>{template.name}</strong>.
+              </p>
+            </>
+          )}
         </div>
         <button
           onClick={() => navigate('/templates')}
@@ -484,12 +530,61 @@ export default function Disparar() {
                 className="w-4 h-4 rounded border-gray-300 text-primary-600 accent-primary-600"
               />
               <span className="text-sm text-gray-700">
-                Confirmo o envio para <strong>{leadsEnvio.length} lead{leadsEnvio.length !== 1 ? 's' : ''}</strong>
+                {modoEnvio === 'agendado' ? 'Confirmo o agendamento para' : 'Confirmo o envio para'}{' '}
+                <strong>{leadsEnvio.length} lead{leadsEnvio.length !== 1 ? 's' : ''}</strong>
                 {excludedIds.size > 0 && (
                   <span className="text-gray-400 font-normal"> ({excludedIds.size} excluído{excludedIds.size !== 1 ? 's' : ''})</span>
                 )}
               </span>
             </label>
+          </section>
+
+          {/* ── Quando enviar ── */}
+          <section className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar size={16} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-800">Quando enviar?</h2>
+            </div>
+
+            <div className="flex gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => { setModoEnvio('imediato'); setConfirmado(false); setResult(null); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
+                  modoEnvio === 'imediato'
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                <Send size={14} />
+                Enviar agora
+              </button>
+              <button
+                type="button"
+                onClick={() => { setModoEnvio('agendado'); setConfirmado(false); setResult(null); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
+                  modoEnvio === 'agendado'
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                <Calendar size={14} />
+                Agendar para depois
+              </button>
+            </div>
+
+            {modoEnvio === 'agendado' && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-2">Data e hora do disparo</label>
+                <input
+                  type="datetime-local"
+                  value={dataAgendamento}
+                  onChange={(e) => { setDataAgendamento(e.target.value); setResult(null); }}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Horário de Brasília (BRT). O disparo ocorre em até 5 minutos após o horário escolhido.</p>
+              </div>
+            )}
           </section>
 
           {/* ── Lista de leads (colapsável + seleção individual) ── */}
@@ -663,16 +758,22 @@ export default function Disparar() {
           <p className="text-sm text-gray-500">
             {!confirmado
               ? 'Confirme o envio acima para liberar o botão.'
-              : `Pronto para enviar para ${leadsEnvio.length} lead${leadsEnvio.length !== 1 ? 's' : ''}.`}
+              : modoEnvio === 'agendado' && !dataAgendamento
+              ? 'Selecione a data e hora do agendamento.'
+              : `Pronto para ${modoEnvio === 'agendado' ? 'agendar' : 'enviar'} para ${leadsEnvio.length} lead${leadsEnvio.length !== 1 ? 's' : ''}.`}
           </p>
         )}
         <button
           onClick={handleEnviar}
-          disabled={!confirmado || leadsEnvio.length === 0 || sending}
+          disabled={!confirmado || leadsEnvio.length === 0 || sending || (modoEnvio === 'agendado' && !dataAgendamento)}
           className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-pink-500 hover:bg-pink-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
         >
-          <Send size={15} />
-          {sending ? 'Enviando...' : `Enviar para ${leadsEnvio.length} lead${leadsEnvio.length !== 1 ? 's' : ''}`}
+          {modoEnvio === 'agendado' ? <Calendar size={15} /> : <Send size={15} />}
+          {sending
+            ? (modoEnvio === 'agendado' ? 'Agendando...' : 'Enviando...')
+            : modoEnvio === 'agendado'
+            ? `Agendar para ${leadsEnvio.length} lead${leadsEnvio.length !== 1 ? 's' : ''}`
+            : `Enviar para ${leadsEnvio.length} lead${leadsEnvio.length !== 1 ? 's' : ''}`}
         </button>
       </div>
     </div>

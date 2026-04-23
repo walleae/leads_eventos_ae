@@ -7,6 +7,10 @@
     {
       "path": "/api/cadencias-cron",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/disparos-cron",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
