@@ -1,0 +1,16 @@
+name: Disparos Agendados Cron
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # a cada 5 minutos
+  workflow_dispatch:         # permite disparo manual
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executar cron de disparos agendados
+        run: |
+          curl -sf https://leads-eventos-ae.vercel.app/api/disparos-cron \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            || echo "Cron retornou erro mas continuando"

@@ -3,14 +3,10 @@
     { "source": "/api/meta-proxy/:path*", "destination": "/api/meta-proxy?_p=:path*" },
     { "source": "/((?!api/).*)", "destination": "/" }
   ],
-  "crons": [
+  "headers": [
     {
-      "path": "/api/cadencias-cron",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/disparos-cron",
-      "schedule": "*/5 * * * *"
+      "source": "/api/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
     }
   ]
 }

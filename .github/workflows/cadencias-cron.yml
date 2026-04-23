@@ -1,0 +1,16 @@
+name: Cadências Cron
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # toda hora
+  workflow_dispatch:       # permite disparo manual
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executar cron de cadências
+        run: |
+          curl -sf https://leads-eventos-ae.vercel.app/api/cadencias-cron \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            || echo "Cron retornou erro mas continuando"
