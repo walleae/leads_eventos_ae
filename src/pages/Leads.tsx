@@ -127,7 +127,7 @@ function downloadTemplate() {
 
 interface ImportCSVModalProps {
   onClose: () => void;
-  onImport: (rows: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<{ inserted: number; failed: number }>;
+  onImport: (rows: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<{ inserted: number; failed: number; errors: string[] }>;
 }
 
 function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
@@ -135,7 +135,7 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState('');
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ inserted: number; failed: number } | null>(null);
+  const [result, setResult] = useState<{ inserted: number; failed: number; errors: string[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const validRows = rows.filter((r) => r.errors.length === 0 && r.lead);
@@ -207,6 +207,14 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
                   {result.inserted} lead(s) importado(s) com sucesso
                   {result.failed > 0 && `, ${result.failed} com falha`}.
                 </p>
+                {result.errors.length > 0 && (
+                  <div className="mt-3 text-left bg-red-50 border border-red-200 rounded-md p-3 max-h-32 overflow-y-auto">
+                    <p className="text-xs font-semibold text-red-700 mb-1">Detalhes dos erros:</p>
+                    {result.errors.map((err, idx) => (
+                      <p key={idx} className="text-xs text-red-600">{err}</p>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <>

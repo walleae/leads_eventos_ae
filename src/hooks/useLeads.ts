@@ -186,13 +186,22 @@ export function useLeads() {
 
   const importLeads = async (
     rows: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>[]
-  ): Promise<{ inserted: number; failed: number }> => {
+  ): Promise<{ inserted: number; failed: number; errors: string[] }> => {
     const BATCH = 500;
     let totalProcessed = 0;
     let totalFailed = 0;
+    const errors: string[] = [];
 
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const batch = rows.slice(i, i + BATCH).map(leadToDbUpsert);
+    // Deduplica o array inteiro por telefone antes de batchar (last-write-wins)
+    const deduped = Array.from(
+      rows.reduce((map, row) => {
+        map.set(row.telefone, row);
+        return map;
+      }, new Map<string, typeof rows[number]>()).values()
+    );
+
+    for (let i = 0; i < deduped.length; i += BATCH) {
+      const batch = deduped.slice(i, i + BATCH).map(leadToDbUpsert);
 
       // upsert: insere se telefone novo, atualiza campos fornecidos se já existir
       const { data, error } = await supabase
@@ -203,6 +212,7 @@ export function useLeads() {
       if (error) {
         console.error(`importLeads batch ${i / BATCH + 1} error:`, error.message);
         totalFailed += batch.length;
+        errors.push(`Lote ${i / BATCH + 1}: ${error.message}`);
         continue;
       }
 
@@ -212,7 +222,7 @@ export function useLeads() {
     // Recarrega tudo do banco para refletir inserts + updates corretamente
     await fetchLeads();
 
-    return { inserted: totalProcessed, failed: totalFailed };
+    return { inserted: totalProcessed, failed: totalFailed, errors };
   };
 
   return { leads, loading, saveLead, updateLead, updateLeadStage, deleteLead, importLeads, refetch: fetchLeads };

@@ -3,6 +3,7 @@ import {
   Users,
   MessageSquare,
   CalendarDays,
+  Clock,
   LogOut,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -11,6 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 const navItems = [
   { to: '/leads', label: 'Base de Leads', icon: Users },
   { to: '/templates', label: 'Templates', icon: MessageSquare },
+  { to: '/cadencias', label: 'Cadências', icon: Clock },
 ];
 
 export default function Layout() {

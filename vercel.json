@@ -2,5 +2,11 @@
   "rewrites": [
     { "source": "/api/meta-proxy/:path*", "destination": "/api/meta-proxy?_p=:path*" },
     { "source": "/((?!api/).*)", "destination": "/" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cadencias-cron",
+      "schedule": "0 * * * *"
+    }
   ]
 }

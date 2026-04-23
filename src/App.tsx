@@ -6,6 +6,7 @@ import FormConsultor from './pages/FormConsultor';
 import Templates from './pages/Templates';
 import NewTemplate from './pages/NewTemplate';
 import Disparar from './pages/Disparar';
+import Cadencias from './pages/Cadencias';
 import Login from './pages/Login';
 import { useAuth } from './hooks/useAuth';
 
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/templates" element={<Templates />} />
             <Route path="/templates/novo" element={<NewTemplate />} />
             <Route path="/disparar" element={<Disparar />} />
+            <Route path="/cadencias" element={<Cadencias />} />
           </Route>
         </Route>
       </Routes>
