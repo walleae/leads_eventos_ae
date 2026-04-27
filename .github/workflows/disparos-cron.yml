@@ -80,6 +80,26 @@ jobs:
               -d "{\"status\": \"${NEW_STATUS}\", \"enviado_em\": \"${NOW}\"}")
 
             echo "Supabase PATCH status: $PATCH_STATUS — disparo $ID marcado como '$NEW_STATUS'"
+
+            # Registrar no histórico unificado
+            AGENDAR_PARA=$(echo "$DISPARO" | jq -r '.agendar_para // null')
+            HIST_PAYLOAD=$(echo "$DISPARO" | jq --arg status "$NEW_STATUS" --arg now "$NOW" --arg agpara "$AGENDAR_PARA" '{
+              template_nome: .template_nome,
+              segmento: .segmento,
+              total_leads: (.leads_json | length),
+              leads_json: .leads_json,
+              tipo: "agendado",
+              status: $status,
+              agendado_para: (if $agpara == "null" then null else $agpara end),
+              enviado_em: $now
+            }')
+            curl -sf -X POST \
+              "${SUPABASE_URL}/rest/v1/historico_disparos" \
+              -H "apikey: ${SUPABASE_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_KEY}" \
+              -H "Content-Type: application/json" \
+              -H "Prefer: return=minimal" \
+              -d "$HIST_PAYLOAD" > /dev/null && echo "Histórico registrado." || echo "Aviso: falha ao registrar histórico."
           done
 
           echo "=== Processamento concluído ==="

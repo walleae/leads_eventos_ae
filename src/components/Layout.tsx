@@ -4,6 +4,7 @@ import {
   MessageSquare,
   CalendarDays,
   Clock,
+  History,
   LogOut,
   Sun,
   Moon,
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/leads', label: 'Base de Leads', icon: Users },
   { to: '/templates', label: 'Templates', icon: MessageSquare },
   { to: '/cadencias', label: 'Cadências', icon: Clock },
+  { to: '/historico', label: 'Histórico', icon: History },
 ];
 
 export default function Layout() {

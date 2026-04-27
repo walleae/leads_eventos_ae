@@ -362,6 +362,15 @@ export default function Disparar() {
           telefones: leadsEnvio.map((l) => l.telefone).join(','),
           leads: leadsPayload,
         });
+        // Registra no histórico
+        await supabase.from('historico_disparos').insert({
+          template_nome: template.name,
+          segmento: segmentoIds.join(',') || 'todos',
+          total_leads: leadsPayload.length,
+          leads_json: leadsPayload,
+          tipo: 'imediato',
+          status: 'enviado',
+        });
       } else {
         const { error } = await supabase.from('disparos_agendados').insert({
           template_nome: template.name,
