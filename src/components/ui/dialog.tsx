@@ -31,7 +31,7 @@ function Dialog({ open, onClose, children, className }: DialogProps) {
       />
       <div
         className={cn(
-          'relative z-10 w-full max-w-lg bg-white rounded-xl shadow-xl max-h-[90vh] overflow-y-auto',
+          'relative z-10 w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto',
           className
         )}
       >
@@ -44,7 +44,7 @@ function Dialog({ open, onClose, children, className }: DialogProps) {
 function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('flex items-start justify-between p-6 pb-4 border-b border-gray-100', className)}
+      className={cn('flex items-start justify-between p-6 pb-4 border-b border-gray-100 dark:border-gray-700', className)}
       {...props}
     />
   );
@@ -53,7 +53,7 @@ function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn('text-lg font-semibold text-gray-900', className)}
+      className={cn('text-lg font-semibold text-gray-900 dark:text-gray-100', className)}
       {...props}
     />
   );
@@ -66,7 +66,7 @@ function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement
 function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100', className)}
+      className={cn('flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700', className)}
       {...props}
     />
   );
@@ -76,7 +76,7 @@ function DialogClose({ onClose }: { onClose: () => void }) {
   return (
     <button
       onClick={onClose}
-      className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+      className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
     >
       <X size={18} />
     </button>

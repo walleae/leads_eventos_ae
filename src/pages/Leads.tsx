@@ -699,7 +699,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
         <div>
           <label className="text-xs font-medium text-gray-600 block mb-1">Observações</label>
           <textarea
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+            className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
             rows={3}
             placeholder="Observações adicionais..."
             value={form.observacoes}
@@ -802,12 +802,12 @@ export default function Leads() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Base de Leads</h1>
-          <p className="text-sm text-gray-500">{leads.length} lead(s) cadastrado(s)</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Base de Leads</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{leads.length} lead(s) cadastrado(s)</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setShowImport(true)}>
@@ -822,14 +822,14 @@ export default function Leads() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3">
         <div className="flex items-center gap-2 mb-2">
           <Filter size={14} className="text-gray-400" />
-          <span className="text-xs font-medium text-gray-500">Filtros</span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filtros</span>
           {activeCount > 0 && (
             <button
               onClick={() => setFilters(EMPTY_FILTERS)}
-              className="ml-auto flex items-center gap-1 text-xs text-primary-600 hover:underline"
+              className="ml-auto flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline"
             >
               <X size={12} />
               Limpar {activeCount} filtro(s)
@@ -934,7 +934,7 @@ export default function Leads() {
             ))}
           </Select>
         </div>
-        <p className="text-xs text-gray-400 mt-2">{filtered.length} resultado(s)</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{filtered.length} resultado(s)</p>
       </div>
 
       {/* Table */}
@@ -944,43 +944,43 @@ export default function Leads() {
             <p className="text-sm">Nenhum lead encontrado</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Escola</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Relação</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Porte</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Interesse</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nível</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Consultor</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Origem</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Etapa</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Data</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ações</th>
+                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nome</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Escola</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Relação</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Porte</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Estado</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cliente</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Interesse</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nível</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Consultor</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Origem</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Etapa</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Data</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filtered.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{lead.nome}</p>
-                      <p className="text-xs text-gray-500">{lead.email}</p>
-                      <p className="text-xs text-gray-500">{lead.telefone}</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{lead.nome}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{lead.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{lead.telefone}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 text-xs">{lead.nomeEscola}</td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">{lead.relacaoEscola || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">{lead.porteAlunos || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">{lead.estado || '—'}</td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-xs">{lead.nomeEscola}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.relacaoEscola || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.porteAlunos || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.estado || '—'}</td>
                     <td className="px-4 py-3">
                       <Badge variant={lead.jaECliente ? 'sim' : 'nao'}>
                         {lead.jaECliente ? 'Sim' : 'Não'}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
                       {lead.maiorInteresse ? INTERESSE_LABELS[lead.maiorInteresse] : '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -997,30 +997,30 @@ export default function Leads() {
                           {lead.origem === 'sorteio' ? 'Sorteio' : 'Consultor'}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">{lead.origem}</span>
+                        <span className="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{lead.origem}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-700">{stageLabel(lead.stage)}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{formatDate(lead.createdAt)}</td>
+                    <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{stageLabel(lead.stage)}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{formatDate(lead.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setEditLead(lead)}
-                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
                           title="Editar lead"
                         >
                           <Pencil size={14} />
                         </button>
                         <button
                           onClick={() => setDisparoLead(lead)}
-                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors"
                           title="Disparar mensagem"
                         >
                           <Send size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(lead.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                           title="Excluir"
                         >
                           <Trash2 size={14} />
