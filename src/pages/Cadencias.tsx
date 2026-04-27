@@ -66,17 +66,17 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-between gap-2 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-gray-300 transition-colors"
+        className="flex items-center justify-between gap-2 w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
       >
-        <span className={selected.length > 0 ? 'text-primary-700 font-medium' : 'text-gray-400'}>
+        <span className={selected.length > 0 ? 'text-primary-700 dark:text-primary-400 font-medium' : 'text-gray-400 dark:text-gray-500'}>
           {label}
         </span>
         <ChevronDown size={14} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-52 overflow-y-auto">
+        <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden max-h-52 overflow-y-auto">
           {options.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-gray-400">Nenhuma opção</p>
+            <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Nenhuma opção</p>
           ) : (
             <>
               {options.map((opt) => {
@@ -86,18 +86,18 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
                     key={opt.value}
                     type="button"
                     onClick={() => toggle(opt.value)}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                   >
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? 'bg-primary-600 border-primary-600' : 'border-gray-300'}`}>
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? 'bg-primary-600 border-primary-600' : 'border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700'}`}>
                       {checked && <Check size={10} className="text-white" />}
                     </span>
-                    <span className={checked ? 'text-primary-700 font-medium' : 'text-gray-700'}>{opt.label}</span>
+                    <span className={checked ? 'text-primary-700 dark:text-primary-400 font-medium' : 'text-gray-700 dark:text-gray-200'}>{opt.label}</span>
                   </button>
                 );
               })}
               {selected.length > 0 && (
-                <div className="border-t border-gray-100 px-3 py-2">
-                  <button type="button" onClick={() => onChange([])} className="text-xs text-gray-400 hover:text-gray-600">
+                <div className="border-t border-gray-100 dark:border-gray-600 px-3 py-2">
+                  <button type="button" onClick={() => onChange([])} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                     Limpar
                   </button>
                 </div>
@@ -186,35 +186,35 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100">
-          <h2 className="text-base font-bold text-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
             {cadencia ? 'Editar cadência' : 'Nova cadência'}
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Configure o agendamento automático</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Configure o agendamento automático</p>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5 overflow-y-auto max-h-[70vh]">
           {/* Nome */}
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1.5">Nome da cadência</label>
+            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">Nome da cadência</label>
             <input
               type="text"
               value={form.nome}
               onChange={(e) => set('nome', e.target.value)}
               placeholder="Ex: Follow-up leads quentes – seg/qua/sex"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               required
             />
           </div>
 
           {/* Template */}
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1.5">Template</label>
+            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">Template</label>
             <select
               value={form.templateNome}
               onChange={(e) => set('templateNome', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
               required
             >
               <option value="">Selecione um template</option>
@@ -233,7 +233,7 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
 
           {/* Dias da semana */}
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-2">Dias da semana</label>
+            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-2">Dias da semana</label>
             <div className="flex gap-2 flex-wrap">
               {DIAS_SEMANA.map(({ value, label }) => {
                 const active = form.diasSemana.includes(value);
@@ -245,7 +245,7 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                       active
                         ? 'bg-primary-600 border-primary-600 text-white'
-                        : 'border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-300 hover:text-primary-600'
                     }`}
                   >
                     {label}
@@ -260,13 +260,13 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
 
           {/* Horário */}
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1.5">
+            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">
               Horário (horário de Brasília)
             </label>
             <select
               value={form.horario}
               onChange={(e) => set('horario', Number(e.target.value))}
-              className="w-48 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-48 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               {HORAS.map((h) => (
                 <option key={h.value} value={h.value}>{h.label}</option>
@@ -276,7 +276,7 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
 
           {/* Segmentos */}
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1.5">Segmento</label>
+            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">Segmento</label>
             <MultiSelect
               options={SEGMENTOS.map((s) => ({ value: s.id, label: s.label }))}
               selected={form.segmentoIds}
@@ -287,7 +287,7 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
 
           {/* Origem */}
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1.5">Origem</label>
+            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">Origem</label>
             <MultiSelect
               options={todasOrigens.map((o) => ({ value: o, label: o }))}
               selected={form.origemIds}
@@ -297,11 +297,11 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
           </div>
         </form>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancelar
           </button>
@@ -337,63 +337,63 @@ function CadenciaCard({ cadencia, onEdit, onDelete, onToggle }: CardProps) {
     : 'Todas as origens';
 
   return (
-    <div className={`bg-white rounded-xl border ${cadencia.ativo ? 'border-gray-200' : 'border-gray-100 opacity-60'} p-5 transition-all`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border ${cadencia.ativo ? 'border-gray-200 dark:border-gray-700' : 'border-gray-100 dark:border-gray-700 opacity-60'} p-5 transition-all`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${
-            cadencia.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+            cadencia.ativo ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
           }`}>
             {cadencia.ativo ? 'Ativo' : 'Pausado'}
           </span>
-          <h3 className="text-sm font-bold text-gray-900 truncate">{cadencia.nome}</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{cadencia.nome}</h3>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={onToggle}
             title={cadencia.ativo ? 'Pausar' : 'Ativar'}
-            className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
           >
             {cadencia.ativo ? <PowerOff size={15} /> : <Power size={15} />}
           </button>
           <button
             onClick={onEdit}
-            className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
           >
             <Pencil size={15} />
           </button>
           <button
             onClick={onDelete}
-            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <Trash2 size={15} />
           </button>
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5 text-xs text-gray-500">
+      <div className="mt-3 space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
         <div className="flex items-center gap-1.5">
-          <Calendar size={12} className="shrink-0 text-gray-400" />
-          <span className="font-medium text-gray-700">{formatDias(cadencia.diasSemana)}</span>
+          <Calendar size={12} className="shrink-0 text-gray-400 dark:text-gray-500" />
+          <span className="font-medium text-gray-700 dark:text-gray-300">{formatDias(cadencia.diasSemana)}</span>
           <span>·</span>
-          <Clock size={12} className="shrink-0 text-gray-400" />
-          <span className="font-medium text-gray-700">{String(cadencia.horario).padStart(2, '0')}:00 BRT</span>
+          <Clock size={12} className="shrink-0 text-gray-400 dark:text-gray-500" />
+          <span className="font-medium text-gray-700 dark:text-gray-300">{String(cadencia.horario).padStart(2, '0')}:00 BRT</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-gray-400">Template:</span>
-          <span className="font-medium text-gray-700 truncate">{cadencia.templateNome}</span>
+          <span className="text-gray-400 dark:text-gray-500">Template:</span>
+          <span className="font-medium text-gray-700 dark:text-gray-300 truncate">{cadencia.templateNome}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-gray-400">Segmento:</span>
+          <span className="text-gray-400 dark:text-gray-500">Segmento:</span>
           <span className="truncate">{segLabels}</span>
         </div>
         {cadencia.origemIds.length > 0 && (
           <div className="flex items-center gap-1.5">
-            <span className="text-gray-400">Origem:</span>
+            <span className="text-gray-400 dark:text-gray-500">Origem:</span>
             <span className="truncate">{origemLabel}</span>
           </div>
         )}
         <div className="flex items-center gap-1.5 pt-0.5">
-          <span className="text-gray-400">Última execução:</span>
+          <span className="text-gray-400 dark:text-gray-500">Última execução:</span>
           <span>{formatUltimaExecucao(cadencia.ultimaExecucao)}</span>
         </div>
       </div>
@@ -469,13 +469,13 @@ export default function Cadencias() {
   };
 
   return (
-    <div className="h-full bg-gray-50">
+    <div className="h-full bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-5">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Cadências</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Disparos automáticos agendados por dia e hora</p>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Cadências</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Disparos automáticos agendados por dia e hora</p>
           </div>
           <button
             onClick={openCreate}
@@ -490,9 +490,9 @@ export default function Cadencias() {
       {/* Body */}
       <div className="max-w-3xl mx-auto px-6 py-6">
         {/* Info sobre o cron */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
-          <Clock size={16} className="text-blue-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-blue-700">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
+          <Clock size={16} className="text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-blue-700 dark:text-blue-300">
             As cadências são executadas automaticamente a cada hora cheia (horário de Brasília) pelo servidor.
             O template e os filtros de segmento/origem são aplicados no momento do disparo.
           </p>
@@ -504,11 +504,11 @@ export default function Cadencias() {
           </div>
         ) : cadencias.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock size={24} className="text-gray-400" />
+            <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock size={24} className="text-gray-400 dark:text-gray-500" />
             </div>
-            <p className="text-sm font-medium text-gray-700">Nenhuma cadência configurada</p>
-            <p className="text-xs text-gray-400 mt-1 mb-5">Crie uma para automatizar seus disparos</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Nenhuma cadência configurada</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 mb-5">Crie uma para automatizar seus disparos</p>
             <button
               onClick={openCreate}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
@@ -547,16 +547,16 @@ export default function Cadencias() {
       {/* Confirm delete */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={20} className="text-red-500" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={20} className="text-red-500 dark:text-red-400" />
             </div>
-            <p className="text-sm font-bold text-gray-900 mb-1">Excluir cadência?</p>
-            <p className="text-xs text-gray-500 mb-5">Esta ação não pode ser desfeita.</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">Excluir cadência?</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">Esta ação não pode ser desfeita.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancelar
               </button>

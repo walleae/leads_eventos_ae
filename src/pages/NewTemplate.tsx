@@ -253,20 +253,20 @@ export default function NewTemplate() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-3">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center gap-3">
         <button
           onClick={() => navigate('/templates')}
-          className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {editId ? 'Editar Template' : 'Novo Template'}
           </h1>
-          <p className="text-sm text-gray-500">Configure o template de mensagem</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Configure o template de mensagem</p>
         </div>
       </div>
 
@@ -274,7 +274,7 @@ export default function NewTemplate() {
       <div className="flex-1 overflow-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 h-full">
           {/* Left: Form */}
-          <div className="overflow-y-auto p-6 border-r border-gray-200 space-y-5">
+          <div className="overflow-y-auto p-6 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 space-y-5">
             {/* Nome */}
             <div>
               <Label htmlFor="nome">Nome do template *</Label>
@@ -285,7 +285,7 @@ export default function NewTemplate() {
                 value={nome}
                 onChange={(e) => { setNome(e.target.value); setError(''); }}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Será normalizado para a Meta: <span className="font-mono">{nome ? nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') : '—'}</span>
               </p>
             </div>
@@ -309,7 +309,7 @@ export default function NewTemplate() {
             {/* Mídia */}
             <div>
               <Label>Cabeçalho — Mídia (opcional)</Label>
-              <div className="flex items-start gap-1.5 mt-1 mb-2 text-xs text-blue-700 bg-blue-50 px-2.5 py-2 rounded-lg">
+              <div className="flex items-start gap-1.5 mt-1 mb-2 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-2 rounded-lg">
                 <Info size={12} className="mt-0.5 shrink-0" />
                 <span>A imagem será enviada para o Supabase Storage e a URL pública usada na criação do template na Meta.</span>
               </div>
@@ -318,21 +318,21 @@ export default function NewTemplate() {
                   <img
                     src={midia}
                     alt="Preview"
-                    className="w-full max-h-40 object-cover rounded-lg border border-gray-200"
+                    className="w-full max-h-40 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                   />
                   <button
                     onClick={() => { setMidia(undefined); setMidiaNome(undefined); setMidiaFile(undefined); }}
-                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md text-gray-600 hover:text-red-600 transition-colors"
+                    className="absolute top-2 right-2 p-1 bg-white dark:bg-gray-700 rounded-full shadow-md text-gray-600 dark:text-gray-300 hover:text-red-600 transition-colors"
                   >
                     <X size={14} />
                   </button>
-                  <p className="text-xs text-gray-500 mt-1">{midiaNome}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{midiaNome}</p>
                 </div>
               ) : (
-                <label className="mt-1 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors">
-                  <Upload size={20} className="text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-500">Clique para fazer upload</span>
-                  <span className="text-xs text-gray-400 mt-0.5">PNG, JPG até 5MB</span>
+                <label className="mt-1 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors">
+                  <Upload size={20} className="text-gray-400 dark:text-gray-500 mb-2" />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Clique para fazer upload</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">PNG, JPG até 5MB</span>
                   <input
                     type="file"
                     accept="image/png,image/jpeg"
@@ -347,13 +347,13 @@ export default function NewTemplate() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label htmlFor="corpo">Corpo da mensagem *</Label>
-                <span className="text-xs text-gray-400">{corpo.length}/4096</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{corpo.length}/4096</span>
               </div>
               <div className="flex gap-1 mb-1.5">
                 <button
                   type="button"
                   onClick={() => insertFormat('*', '*')}
-                  className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors font-bold text-xs"
+                  className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors font-bold text-xs"
                   title="Negrito"
                 >
                   <Bold size={14} />
@@ -361,7 +361,7 @@ export default function NewTemplate() {
                 <button
                   type="button"
                   onClick={() => insertFormat('_', '_')}
-                  className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                  className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                   title="Itálico"
                 >
                   <Italic size={14} />
@@ -369,7 +369,7 @@ export default function NewTemplate() {
                 <button
                   type="button"
                   onClick={() => insertFormat('~', '~')}
-                  className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                  className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                   title="Tachado"
                 >
                   <Strikethrough size={14} />
@@ -390,39 +390,39 @@ export default function NewTemplate() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Botões com link (opcional)</Label>
-                <span className="text-xs text-gray-400">{botoes.length}/3</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{botoes.length}/3</span>
               </div>
 
               {botoes.length > 0 && (
                 <div className="space-y-3 mb-3">
                   {botoes.map((btn, i) => (
-                    <div key={i} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+                    <div key={i} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 space-y-2 bg-gray-50 dark:bg-gray-700/50">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600 flex items-center gap-1.5">
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                           {btn.type === 'url' ? (
                             <><Link2 size={11} /> Botão com link</>
                           ) : (
                             <><MessageCircle size={11} /> Resposta rápida</>
                           )}
-                          <span className="text-gray-400">#{i + 1}</span>
+                          <span className="text-gray-400 dark:text-gray-500">#{i + 1}</span>
                         </span>
                         <button onClick={() => removeBotao(i)} className="text-gray-400 hover:text-red-500 transition-colors">
                           <X size={14} />
                         </button>
                       </div>
                       <div>
-                        <label className="text-xs text-gray-500 mb-1 block">Texto do botão *</label>
+                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Texto do botão *</label>
                         <Input
                           placeholder={btn.type === 'url' ? 'Ex: Saiba mais, Acesse aqui...' : 'Ex: Sim, quero! / Não tenho interesse'}
                           value={btn.text}
                           maxLength={25}
                           onChange={(e) => updateBotao(i, 'text', e.target.value)}
                         />
-                        <p className="text-xs text-gray-400 mt-0.5 text-right">{btn.text.length}/25</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 text-right">{btn.text.length}/25</p>
                       </div>
                       {btn.type === 'url' && (
                         <div>
-                          <label className="text-xs text-gray-500 mb-1 block">URL de destino *</label>
+                          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">URL de destino *</label>
                           <Input
                             placeholder="https://..."
                             value={btn.url ?? ''}
@@ -440,7 +440,7 @@ export default function NewTemplate() {
                   <button
                     type="button"
                     onClick={() => addBotao('url')}
-                    className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 border border-dashed border-primary-300 rounded-lg px-3 py-2 flex-1 justify-center hover:bg-primary-50 transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 border border-dashed border-primary-300 dark:border-primary-600 rounded-lg px-3 py-2 flex-1 justify-center hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
                   >
                     <Link2 size={12} />
                     + Link
@@ -448,7 +448,7 @@ export default function NewTemplate() {
                   <button
                     type="button"
                     onClick={() => addBotao('quick_reply')}
-                    className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-700 border border-dashed border-green-300 rounded-lg px-3 py-2 flex-1 justify-center hover:bg-green-50 transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 hover:text-green-700 border border-dashed border-green-300 dark:border-green-700 rounded-lg px-3 py-2 flex-1 justify-center hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
                   >
                     <MessageCircle size={12} />
                     + Resposta rápida
@@ -458,18 +458,18 @@ export default function NewTemplate() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+              <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">{error}</p>
             )}
 
             {metaStatus === 'sending' && (
-              <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
                 <Loader2 size={14} className="animate-spin" />
                 {metaMessage}
               </div>
             )}
 
             {metaStatus === 'success' && (
-              <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
                 <CheckCircle size={14} />
                 {metaMessage}
               </div>
@@ -477,7 +477,7 @@ export default function NewTemplate() {
 
             {metaStatus === 'error' && (
               <div className="space-y-1">
-                <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
                   <AlertCircle size={14} className="mt-0.5 shrink-0" />
                   <span><strong>Erro Meta:</strong> {metaMessage} — Template salvo no Supabase.</span>
                 </div>
@@ -496,8 +496,8 @@ export default function NewTemplate() {
           </div>
 
           {/* Right: Preview */}
-          <div className="p-6 bg-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
               Prévia do WhatsApp
             </p>
             <div

@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef } from 'react';
-import { Trash2, Send, Filter, X, Upload, Download, FileText, AlertCircle, CheckCircle2, Pencil, Plus } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Trash2, Send, X, Upload, Download, FileText, AlertCircle, CheckCircle2, Pencil, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLeads } from '../hooks/useLeads';
 import { useTemplates } from '../hooks/useTemplates';
 import type { Lead } from '../types/lead';
@@ -171,13 +171,13 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
       </DialogHeader>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 px-6">
+      <div className="flex border-b border-gray-200 dark:border-gray-700 px-6">
         <button
           onClick={() => setTab('import')}
           className={`py-2.5 px-4 text-sm font-medium border-b-2 -mb-px transition-colors ${
             tab === 'import'
-              ? 'border-primary-600 text-primary-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-primary-600 text-primary-700 dark:text-primary-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
           }`}
         >
           <span className="flex items-center gap-1.5"><Upload size={14} /> Importar Arquivo</span>
@@ -186,8 +186,8 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
           onClick={() => setTab('guide')}
           className={`py-2.5 px-4 text-sm font-medium border-b-2 -mb-px transition-colors ${
             tab === 'guide'
-              ? 'border-primary-600 text-primary-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-primary-600 text-primary-700 dark:text-primary-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
           }`}
         >
           <span className="flex items-center gap-1.5"><FileText size={14} /> Planilha Modelo</span>
@@ -199,19 +199,19 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
           <>
             {result ? (
               <div className="text-center py-6">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle2 size={22} className="text-green-600" />
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle2 size={22} className="text-green-600 dark:text-green-400" />
                 </div>
-                <p className="font-semibold text-gray-900 mb-1">Importação concluída</p>
-                <p className="text-sm text-gray-600">
+                <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Importação concluída</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {result.inserted} lead(s) importado(s) com sucesso
                   {result.failed > 0 && `, ${result.failed} com falha`}.
                 </p>
                 {result.errors.length > 0 && (
-                  <div className="mt-3 text-left bg-red-50 border border-red-200 rounded-md p-3 max-h-32 overflow-y-auto">
-                    <p className="text-xs font-semibold text-red-700 mb-1">Detalhes dos erros:</p>
+                  <div className="mt-3 text-left bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3 max-h-32 overflow-y-auto">
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">Detalhes dos erros:</p>
                     {result.errors.map((err, idx) => (
-                      <p key={idx} className="text-xs text-red-600">{err}</p>
+                      <p key={idx} className="text-xs text-red-600 dark:text-red-400">{err}</p>
                     ))}
                   </div>
                 )}
@@ -221,13 +221,13 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
                 {/* File pick area */}
                 <div
                   onClick={() => fileRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                  className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors"
                 >
-                  <Upload size={28} className="mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm font-medium text-gray-700">
+                  <Upload size={28} className="mx-auto mb-2 text-gray-400 dark:text-gray-500" />
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {fileName ? fileName : 'Clique para selecionar um arquivo CSV'}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">Separador vírgula (,) ou ponto e vírgula (;) · UTF-8</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Separador vírgula (,) ou ponto e vírgula (;) · UTF-8</p>
                   <input
                     ref={fileRef}
                     type="file"
@@ -241,43 +241,43 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
                   <>
                     {/* Stats */}
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-gray-50 rounded-lg p-3 text-center">
-                        <p className="text-xl font-bold text-gray-900">{rows.length}</p>
-                        <p className="text-xs text-gray-500">Linhas lidas</p>
+                      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{rows.length}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Linhas lidas</p>
                       </div>
-                      <div className="bg-green-50 rounded-lg p-3 text-center">
-                        <p className="text-xl font-bold text-green-700">{validRows.length}</p>
-                        <p className="text-xs text-green-600">Válidas</p>
+                      <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-green-700 dark:text-green-400">{validRows.length}</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">Válidas</p>
                       </div>
-                      <div className={`rounded-lg p-3 text-center ${errorRows.length > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
-                        <p className={`text-xl font-bold ${errorRows.length > 0 ? 'text-red-700' : 'text-gray-400'}`}>{errorRows.length}</p>
-                        <p className={`text-xs ${errorRows.length > 0 ? 'text-red-500' : 'text-gray-400'}`}>Com erro</p>
+                      <div className={`rounded-lg p-3 text-center ${errorRows.length > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
+                        <p className={`text-xl font-bold ${errorRows.length > 0 ? 'text-red-700 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>{errorRows.length}</p>
+                        <p className={`text-xs ${errorRows.length > 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>Com erro</p>
                       </div>
                     </div>
 
                     {/* Preview */}
                     {validRows.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                           Prévia (primeiros {Math.min(validRows.length, 5)} de {validRows.length})
                         </p>
-                        <div className="overflow-x-auto rounded-lg border border-gray-200">
+                        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
                           <table className="w-full text-xs">
                             <thead>
-                              <tr className="bg-gray-50 border-b border-gray-200">
-                                <th className="text-left px-3 py-2 font-semibold text-gray-500">Nome</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-500">Telefone</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-500">Origem</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-500">Escola</th>
+                              <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+                                <th className="text-left px-3 py-2 font-semibold text-gray-500 dark:text-gray-400">Nome</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-500 dark:text-gray-400">Telefone</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-500 dark:text-gray-400">Origem</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-500 dark:text-gray-400">Escola</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                               {validRows.slice(0, 5).map((r, i) => (
                                 <tr key={i}>
-                                  <td className="px-3 py-2 text-gray-800">{r.lead!.nome}</td>
-                                  <td className="px-3 py-2 text-gray-600">{r.lead!.telefone}</td>
-                                  <td className="px-3 py-2 text-gray-600">{r.lead!.origem}</td>
-                                  <td className="px-3 py-2 text-gray-600">{r.lead!.nomeEscola || '—'}</td>
+                                  <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{r.lead!.nome}</td>
+                                  <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{r.lead!.telefone}</td>
+                                  <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{r.lead!.origem}</td>
+                                  <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{r.lead!.nomeEscola || '—'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -288,20 +288,20 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
 
                     {/* Errors */}
                     {errorRows.length > 0 && (
-                      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                      <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
                         <div className="flex items-center gap-1.5 mb-2">
-                          <AlertCircle size={14} className="text-red-500" />
-                          <p className="text-xs font-semibold text-red-700">{errorRows.length} linha(s) com erro serão ignoradas</p>
+                          <AlertCircle size={14} className="text-red-500 dark:text-red-400" />
+                          <p className="text-xs font-semibold text-red-700 dark:text-red-400">{errorRows.length} linha(s) com erro serão ignoradas</p>
                         </div>
                         <ul className="space-y-0.5 max-h-24 overflow-y-auto">
                           {errorRows.slice(0, 10).map((r, i) => (
-                            <li key={i} className="text-xs text-red-600">
+                            <li key={i} className="text-xs text-red-600 dark:text-red-400">
                               Linha {rows.indexOf(r) + 2}: {r.errors.join(', ')}
                               {r.raw.nome ? ` — "${r.raw.nome}"` : ''}
                             </li>
                           ))}
                           {errorRows.length > 10 && (
-                            <li className="text-xs text-red-400">... e mais {errorRows.length - 10} erro(s)</li>
+                            <li className="text-xs text-red-400 dark:text-red-500">... e mais {errorRows.length - 10} erro(s)</li>
                           )}
                         </ul>
                       </div>
@@ -315,40 +315,40 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
 
         {tab === 'guide' && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               A planilha deve estar no formato <strong>CSV</strong> (separador vírgula ou ponto e vírgula).
               Apenas as colunas marcadas como <span className="text-red-600 font-medium">obrigatórias</span> são necessárias;
               as demais podem ser omitidas ou deixadas em branco.
             </p>
 
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Coluna</th>
-                    <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Formato / Valores aceitos</th>
+                  <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+                    <th className="text-left px-3 py-2.5 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Coluna</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Formato / Valores aceitos</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {CSV_COLUMNS.map((col) => (
-                    <tr key={col.key} className={col.required ? 'bg-red-50/30' : ''}>
-                      <td className="px-3 py-2 font-mono font-medium text-gray-800">{col.label}</td>
+                    <tr key={col.key} className={col.required ? 'bg-red-50/30 dark:bg-red-900/10' : ''}>
+                      <td className="px-3 py-2 font-mono font-medium text-gray-800 dark:text-gray-200">{col.label}</td>
                       <td className="px-3 py-2">
                         {col.required ? (
                           <span className="text-red-600 font-semibold">Obrigatório</span>
                         ) : (
-                          <span className="text-gray-400">Opcional</span>
+                          <span className="text-gray-400 dark:text-gray-500">Opcional</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-gray-600">{col.desc}</td>
+                      <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{col.desc}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300">
               <strong>Dica:</strong> Baixe a planilha modelo abaixo para ter um exemplo com todas as colunas preenchidas corretamente.
             </div>
           </div>
@@ -457,7 +457,7 @@ function DisparoModal({ lead, onClose }: DisparoModalProps) {
               Disparar mensagem para <strong>{lead.nome}</strong> ({lead.telefone})
             </p>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Template (opcional)</label>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Template (opcional)</label>
               <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
                 <option value="">Sem template</option>
                 {templates.map((t) => (
@@ -565,7 +565,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
       <DialogBody className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Nome</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Nome</label>
             <Input
               placeholder="Nome completo"
               value={form.nome}
@@ -573,7 +573,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">
               Telefone <span className="text-red-500">*</span>
             </label>
             <Input
@@ -583,7 +583,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">E-mail</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">E-mail</label>
             <Input
               type="email"
               placeholder="email@exemplo.com"
@@ -592,7 +592,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">
               Origem <span className="text-red-500">*</span>
             </label>
             <Input
@@ -602,7 +602,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Nome da Escola</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Nome da Escola</label>
             <Input
               placeholder="Escola ABC"
               value={form.nomeEscola}
@@ -610,14 +610,14 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Relação com a Escola</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Relação com a Escola</label>
             <Select value={form.relacaoEscola} onChange={(e) => set('relacaoEscola', e.target.value)}>
               <option value="">Selecionar...</option>
               {RELACAO_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
             </Select>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Estado</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Estado</label>
             <Input
               placeholder="SP"
               value={form.estado}
@@ -625,7 +625,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Cidade</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Cidade</label>
             <Input
               placeholder="São Paulo"
               value={form.cidade}
@@ -633,14 +633,14 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Porte de Alunos</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Porte de Alunos</label>
             <Select value={form.porteAlunos} onChange={(e) => set('porteAlunos', e.target.value)}>
               <option value="">Selecionar...</option>
               {PORTE_OPTIONS.map((p) => <option key={p} value={p}>{p} alunos</option>)}
             </Select>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Rede de Ensino</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Rede de Ensino</label>
             <Input
               placeholder="Rede XYZ"
               value={form.redeEnsino}
@@ -648,7 +648,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Maior Interesse</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Maior Interesse</label>
             <Select
               value={form.maiorInteresse ?? ''}
               onChange={(e) => set('maiorInteresse', (e.target.value as Lead['maiorInteresse']) || undefined)}
@@ -660,7 +660,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             </Select>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Nível de Interesse</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Nível de Interesse</label>
             <Select
               value={form.nivelInteresse ?? ''}
               onChange={(e) => set('nivelInteresse', (e.target.value as Lead['nivelInteresse']) || undefined)}
@@ -672,7 +672,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             </Select>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Consultor</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Consultor</label>
             <Input
               placeholder="Nome do consultor"
               value={form.nomeConsultor}
@@ -680,7 +680,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Já é cliente?</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Já é cliente?</label>
             <Select
               value={form.jaECliente ? 'sim' : 'nao'}
               onChange={(e) => set('jaECliente', e.target.value === 'sim')}
@@ -690,14 +690,14 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             </Select>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Etapa do Funil</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Etapa do Funil</label>
             <Select value={form.stage} onChange={(e) => set('stage', e.target.value)}>
               {STAGES.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
             </Select>
           </div>
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Observações</label>
+          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Observações</label>
           <textarea
             className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
             rows={3}
@@ -722,6 +722,7 @@ function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
 }
 
 interface Filters {
+  busca: string;
   origem: string;
   porte: string;
   estado: string;
@@ -734,6 +735,7 @@ interface Filters {
 }
 
 const EMPTY_FILTERS: Filters = {
+  busca: '',
   origem: '',
   porte: '',
   estado: '',
@@ -744,6 +746,228 @@ const EMPTY_FILTERS: Filters = {
   relacao: '',
   stage: '',
 };
+
+// ─── Definições estáticas de filtros ─────────────────────────────────────────
+
+const STATIC_FILTER_DEFS: Record<string, { label: string; options: { value: string; label: string }[] }> = {
+  origem: {
+    label: 'Origem',
+    options: [
+      { value: 'sorteio', label: 'Sorteio' },
+      { value: 'consultor', label: 'Consultor' },
+    ],
+  },
+  relacao: {
+    label: 'Relação',
+    options: RELACAO_OPTIONS.map((r) => ({ value: r, label: r })),
+  },
+  porte: {
+    label: 'Porte',
+    options: PORTE_OPTIONS.map((p) => ({ value: p, label: `${p} alunos` })),
+  },
+  jaECliente: {
+    label: 'Cliente?',
+    options: [
+      { value: 'sim', label: 'Sim' },
+      { value: 'nao', label: 'Não' },
+    ],
+  },
+  maiorInteresse: {
+    label: 'Interesse',
+    options: [
+      { value: 'agenda_edu', label: 'Agenda Edu' },
+      { value: 'pagamentos', label: 'Pagamentos' },
+      { value: 'ambos', label: 'Ambos' },
+    ],
+  },
+  nivelInteresse: {
+    label: 'Nível',
+    options: [
+      { value: 'quente', label: 'Quente' },
+      { value: 'morno', label: 'Morno' },
+      { value: 'frio', label: 'Frio' },
+    ],
+  },
+  stage: {
+    label: 'Etapa',
+    options: STAGES.map((s) => ({ value: s.id, label: s.title })),
+  },
+};
+
+// ─── FilterBar component ──────────────────────────────────────────────────────
+
+interface FilterBarProps {
+  filters: Filters;
+  onSet: (key: keyof Filters, value: string) => void;
+  onClear: () => void;
+  estados: string[];
+  consultores: string[];
+  totalResult: number;
+}
+
+function FilterBar({ filters, onSet, onClear, estados, consultores, totalResult }: FilterBarProps) {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setStep(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Merge dynamic options into filter defs
+  const filterDefs = useMemo<Record<string, { label: string; options: { value: string; label: string }[] }>>(() => ({
+    ...STATIC_FILTER_DEFS,
+    estado: { label: 'Estado', options: estados.map((e) => ({ value: e, label: e })) },
+    consultor: { label: 'Consultor', options: consultores.map((c) => ({ value: c, label: c })) },
+  }), [estados, consultores]);
+
+  // Filters that are categorical (not busca)
+  const categoricalKeys = Object.keys(filterDefs) as (keyof Filters)[];
+
+  // Active categorical filters
+  const activeChips = categoricalKeys.filter((k) => filters[k]);
+
+  // Available filters to add (those not yet active)
+  const availableKeys = categoricalKeys.filter((k) => !filters[k] && filterDefs[k].options.length > 0);
+
+  const getValueLabel = (key: string, value: string) => {
+    return filterDefs[key]?.options.find((o) => o.value === value)?.label ?? value;
+  };
+
+  const handleSelectCategory = (key: string) => {
+    if (filterDefs[key].options.length === 1) {
+      onSet(key as keyof Filters, filterDefs[key].options[0].value);
+      setOpen(false);
+      setStep(null);
+    } else {
+      setStep(key);
+    }
+  };
+
+  const handleSelectValue = (key: string, value: string) => {
+    onSet(key as keyof Filters, value);
+    setOpen(false);
+    setStep(null);
+  };
+
+  const hasAnyFilter = filters.busca || activeChips.length > 0;
+
+  return (
+    <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5">
+      {/* Search + chips + add-filter row */}
+      <div className="flex items-center gap-2 flex-wrap">
+
+        {/* Busca por nome */}
+        <div className="relative flex-shrink-0">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={filters.busca}
+            onChange={(e) => onSet('busca', e.target.value)}
+            placeholder="Buscar por nome..."
+            className="h-7 pl-7 pr-3 w-48 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          />
+        </div>
+
+        {/* Active filter chips */}
+        {activeChips.map((key) => (
+          <span
+            key={key}
+            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-xs text-primary-700 dark:text-primary-300 font-medium"
+          >
+            <span className="text-primary-500 dark:text-primary-400">{filterDefs[key]?.label}:</span>
+            {getValueLabel(key, filters[key])}
+            <button
+              onClick={() => onSet(key, '')}
+              className="ml-0.5 text-primary-400 hover:text-primary-700 dark:hover:text-primary-200 transition-colors"
+            >
+              <X size={11} />
+            </button>
+          </span>
+        ))}
+
+        {/* Add filter dropdown */}
+        {availableKeys.length > 0 && (
+          <div ref={ref} className="relative">
+            <button
+              onClick={() => { setOpen((o) => !o); setStep(null); }}
+              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              <Plus size={11} />
+              Adicionar filtro
+            </button>
+
+            {open && (
+              <div className="absolute left-0 top-full mt-1 z-40 min-w-[180px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
+                {step === null ? (
+                  /* Category list */
+                  <>
+                    <p className="px-3 py-2 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700">
+                      Filtrar por
+                    </p>
+                    {availableKeys.map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => handleSelectCategory(key)}
+                        className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {filterDefs[key].label}
+                        <ChevronRight size={13} className="text-gray-400" />
+                      </button>
+                    ))}
+                  </>
+                ) : (
+                  /* Options for selected category */
+                  <>
+                    <button
+                      onClick={() => setStep(null)}
+                      className="flex items-center gap-1 w-full px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 transition-colors"
+                    >
+                      <ChevronLeft size={12} />
+                      {filterDefs[step].label}
+                    </button>
+                    {filterDefs[step].options.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleSelectValue(step, opt.value)}
+                        className="flex w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Clear all */}
+        {hasAnyFilter && (
+          <button
+            onClick={onClear}
+            className="inline-flex items-center gap-1 h-7 px-2 text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+          >
+            <X size={11} />
+            Limpar
+          </button>
+        )}
+
+        {/* Result count — pushed to the right */}
+        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+          {totalResult} resultado{totalResult !== 1 ? 's' : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function Leads() {
   const { leads, saveLead, updateLead, deleteLead, importLeads } = useLeads();
@@ -761,7 +985,6 @@ export default function Leads() {
     }
   };
 
-  // Derive unique consultors and states from data
   const consultores = useMemo(() => {
     const set = new Set(leads.map((l) => l.nomeConsultor).filter(Boolean) as string[]);
     return Array.from(set).sort();
@@ -775,10 +998,13 @@ export default function Leads() {
   const setFilter = (key: keyof Filters, value: string) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
 
-  const activeCount = Object.values(filters).filter(Boolean).length;
-
   const filtered = useMemo(() => {
     return leads.filter((l) => {
+      if (filters.busca) {
+        const busca = filters.busca.toLowerCase();
+        const nome = (l.nome ?? '').toLowerCase();
+        if (!nome.includes(busca)) return false;
+      }
       if (filters.origem && l.origem !== filters.origem) return false;
       if (filters.porte && l.porteAlunos !== filters.porte) return false;
       if (filters.estado && l.estado !== filters.estado) return false;
@@ -822,120 +1048,14 @@ export default function Leads() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Filter size={14} className="text-gray-400" />
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filtros</span>
-          {activeCount > 0 && (
-            <button
-              onClick={() => setFilters(EMPTY_FILTERS)}
-              className="ml-auto flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline"
-            >
-              <X size={12} />
-              Limpar {activeCount} filtro(s)
-            </button>
-          )}
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-          <Select
-            className="h-8 text-xs"
-            value={filters.origem}
-            onChange={(e) => setFilter('origem', e.target.value)}
-          >
-            <option value="">Formulário de origem</option>
-            <option value="sorteio">Sorteio</option>
-            <option value="consultor">Consultor</option>
-          </Select>
-
-          <Select
-            className="h-8 text-xs"
-            value={filters.relacao}
-            onChange={(e) => setFilter('relacao', e.target.value)}
-          >
-            <option value="">Relação com a escola</option>
-            {RELACAO_OPTIONS.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </Select>
-
-          <Select
-            className="h-8 text-xs"
-            value={filters.porte}
-            onChange={(e) => setFilter('porte', e.target.value)}
-          >
-            <option value="">Porte de alunos</option>
-            {PORTE_OPTIONS.map((p) => (
-              <option key={p} value={p}>{p} alunos</option>
-            ))}
-          </Select>
-
-          <Select
-            className="h-8 text-xs"
-            value={filters.estado}
-            onChange={(e) => setFilter('estado', e.target.value)}
-          >
-            <option value="">Estado</option>
-            {estados.length > 0
-              ? estados.map((e) => <option key={e} value={e}>{e}</option>)
-              : null}
-          </Select>
-
-          <Select
-            className="h-8 text-xs"
-            value={filters.jaECliente}
-            onChange={(e) => setFilter('jaECliente', e.target.value)}
-          >
-            <option value="">Já é cliente?</option>
-            <option value="sim">Sim</option>
-            <option value="nao">Não</option>
-          </Select>
-
-          <Select
-            className="h-8 text-xs"
-            value={filters.maiorInteresse}
-            onChange={(e) => setFilter('maiorInteresse', e.target.value)}
-          >
-            <option value="">Maior interesse</option>
-            <option value="agenda_edu">Agenda Edu</option>
-            <option value="pagamentos">Pagamentos</option>
-            <option value="ambos">Ambos</option>
-          </Select>
-
-          <Select
-            className="h-8 text-xs"
-            value={filters.nivelInteresse}
-            onChange={(e) => setFilter('nivelInteresse', e.target.value)}
-          >
-            <option value="">Nível de interesse</option>
-            <option value="quente">Quente</option>
-            <option value="morno">Morno</option>
-            <option value="frio">Frio</option>
-          </Select>
-
-          <Select
-            className="h-8 text-xs"
-            value={filters.consultor}
-            onChange={(e) => setFilter('consultor', e.target.value)}
-          >
-            <option value="">Consultor</option>
-            {consultores.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </Select>
-
-          <Select
-            className="h-8 text-xs"
-            value={filters.stage}
-            onChange={(e) => setFilter('stage', e.target.value)}
-          >
-            <option value="">Etapa do funil</option>
-            {STAGES.map((s) => (
-              <option key={s.id} value={s.id}>{s.title}</option>
-            ))}
-          </Select>
-        </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{filtered.length} resultado(s)</p>
-      </div>
+      <FilterBar
+        filters={filters}
+        onSet={setFilter}
+        onClear={() => setFilters(EMPTY_FILTERS)}
+        estados={estados}
+        consultores={consultores}
+        totalResult={filtered.length}
+      />
 
       {/* Table */}
       <div className="flex-1 overflow-auto px-6 py-4">
@@ -990,7 +1110,7 @@ export default function Leads() {
                         </Badge>
                       ) : <span className="text-gray-400 text-xs">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">{lead.nomeConsultor || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.nomeConsultor || '—'}</td>
                     <td className="px-4 py-3">
                       {lead.origem === 'sorteio' || lead.origem === 'consultor' ? (
                         <Badge variant={lead.origem === 'sorteio' ? 'sorteio' : 'consultor'}>

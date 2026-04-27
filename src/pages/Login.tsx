@@ -25,7 +25,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
@@ -33,15 +33,15 @@ export default function Login() {
             <CalendarDays size={22} className="text-white" />
           </div>
           <div>
-            <p className="text-lg font-bold text-gray-900 leading-none">Agenda Edu</p>
-            <p className="text-xs text-gray-500 mt-0.5">Leads Eventos</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">Agenda Edu</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Leads Eventos</p>
           </div>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-          <h1 className="text-xl font-bold text-gray-900 mb-1">Entrar</h1>
-          <p className="text-sm text-gray-500 mb-6">Acesse a plataforma com suas credenciais</p>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Entrar</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Acesse a plataforma com suas credenciais</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -73,7 +73,7 @@ export default function Login() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">{error}</p>
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>

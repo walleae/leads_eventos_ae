@@ -2,15 +2,168 @@ name: Cadências Cron
 
 on:
   schedule:
-    - cron: '0 * * * *'  # toda hora
-  workflow_dispatch:       # permite disparo manual
+    - cron: '0 * * * *'  # toda hora cheia
+  workflow_dispatch:       # permite disparo manual pela UI do GitHub
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://jbslarybszneytcbzlfq.supabase.co
+      SUPABASE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impic2xhcnlic3puZXl0Y2J6bGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0ODI0MTUsImV4cCI6MjA5MTA1ODQxNX0.PzkBfUobJfGyFe0OVuxP3b-unyHAPYzbDqErZkwlT7M
+      WEBHOOK_URL: https://walle.agendaedu.com/webhook/disparo_leads_eventos
+
     steps:
-      - name: Executar cron de cadências
+      - name: Executar cadências agendadas
         run: |
-          curl -sf https://leads-eventos-ae.vercel.app/api/cadencias-cron \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            || echo "Cron retornou erro mas continuando"
+          set -e
+
+          # Hora atual em BRT (UTC-3) — 0..23
+          BRT_HOUR=$(TZ="America/Sao_Paulo" date +"%H" | sed 's/^0//')
+          BRT_DAY=$(TZ="America/Sao_Paulo" date +"%u")   # 1=seg .. 7=dom → convertemos abaixo
+          NOW_UTC=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Converter para o formato do JS: 0=dom, 1=seg, ..., 6=sab
+          # date +%u: 1=seg .. 7=dom → queremos 0=dom, 1=seg .. 6=sab
+          JS_DAY=$(( BRT_DAY % 7 ))
+
+          echo "=== Cadências Cron: BRT hora=$BRT_HOUR dia_js=$JS_DAY ($NOW_UTC) ==="
+
+          # Buscar cadências ativas agendadas para esta hora
+          CADENCIAS=$(curl -sf \
+            "${SUPABASE_URL}/rest/v1/cadencias?ativo=eq.true&horario=eq.${BRT_HOUR}&select=*" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json")
+
+          COUNT=$(echo "$CADENCIAS" | jq 'length')
+          echo "Cadências ativas para hora $BRT_HOUR: $COUNT"
+
+          if [ "$COUNT" = "0" ]; then
+            echo "Nenhuma cadência para esta hora. Encerrando."
+            exit 0
+          fi
+
+          echo "$CADENCIAS" | jq -c '.[]' | while read -r CAD; do
+            ID=$(echo "$CAD" | jq -r '.id')
+            NOME=$(echo "$CAD" | jq -r '.nome')
+            echo "--- Verificando cadência: $NOME (id=$ID)"
+
+            # Checar se o dia da semana está na lista
+            DIAS=$(echo "$CAD" | jq -r '.dias_semana | @json')
+            DIA_OK=$(echo "$DIAS" | jq "contains([$JS_DAY])")
+            if [ "$DIA_OK" != "true" ]; then
+              echo "  Pulando: dia $JS_DAY não está em $DIAS"
+              continue
+            fi
+
+            # Evitar disparo duplo (< 2h desde última execução)
+            ULTIMA=$(echo "$CAD" | jq -r '.ultima_execucao // ""')
+            if [ -n "$ULTIMA" ] && [ "$ULTIMA" != "null" ]; then
+              ULTIMA_TS=$(date -d "$ULTIMA" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$ULTIMA" +%s 2>/dev/null || echo 0)
+              NOW_TS=$(date +%s)
+              DIFF=$(( (NOW_TS - ULTIMA_TS) / 3600 ))
+              if [ "$DIFF" -lt 2 ]; then
+                echo "  Pulando: última execução há ${DIFF}h (< 2h)"
+                continue
+              fi
+            fi
+
+            # Buscar todos os leads (paginado em 1000)
+            ALL_LEADS="[]"
+            OFFSET=0
+            while true; do
+              PAGE=$(curl -sf \
+                "${SUPABASE_URL}/rest/v1/leads?select=id,nome,telefone,email,nome_escola,stage,estado,origem,nivel_interesse,ja_e_cliente&limit=1000&offset=${OFFSET}" \
+                -H "apikey: ${SUPABASE_KEY}" \
+                -H "Authorization: Bearer ${SUPABASE_KEY}")
+              PAGE_LEN=$(echo "$PAGE" | jq 'length')
+              ALL_LEADS=$(echo "$ALL_LEADS $PAGE" | jq -s 'add')
+              if [ "$PAGE_LEN" -lt 1000 ]; then break; fi
+              OFFSET=$(( OFFSET + 1000 ))
+            done
+
+            TOTAL_LEADS=$(echo "$ALL_LEADS" | jq 'length')
+            echo "  Leads total: $TOTAL_LEADS"
+
+            # Filtro por origem
+            ORIGEM_IDS=$(echo "$CAD" | jq -r '.origem_ids // [] | @json')
+            ORIGEM_COUNT=$(echo "$ORIGEM_IDS" | jq 'length')
+            if [ "$ORIGEM_COUNT" -gt 0 ]; then
+              ALL_LEADS=$(echo "$ALL_LEADS" | jq --argjson origens "$ORIGEM_IDS" '[.[] | select(.origem as $o | $origens | index($o) != null)]')
+            fi
+
+            # Filtro por segmento (lógica OR entre segmentos)
+            SEG_IDS=$(echo "$CAD" | jq -r '.segmento_ids // [] | @json')
+            SEG_COUNT=$(echo "$SEG_IDS" | jq 'length')
+            if [ "$SEG_COUNT" -gt 0 ]; then
+              ALL_LEADS=$(echo "$ALL_LEADS" | jq --argjson segs "$SEG_IDS" '
+                . as $leads |
+                $leads | [.[] | . as $l | $segs | any(
+                  . as $seg |
+                  if $seg == "quentes" then $l.nivel_interesse == "quente"
+                  elif $seg == "mornos" then $l.nivel_interesse == "morno"
+                  elif $seg == "frios" then $l.nivel_interesse == "frio"
+                  elif $seg == "proposta" then $l.stage == "proposta"
+                  elif $seg == "negociacao" then $l.stage == "negociacao"
+                  elif $seg == "aquecimento" then $l.stage == "aquecimento"
+                  elif $seg == "clientes" then $l.ja_e_cliente == true
+                  elif $seg == "convertidos" then $l.stage == "convertido"
+                  elif $seg == "novos" then $l.stage == "novo"
+                  else true
+                  end
+                )]
+              ')
+            fi
+
+            QTDE=$(echo "$ALL_LEADS" | jq 'length')
+            echo "  Leads alvo após filtros: $QTDE"
+
+            if [ "$QTDE" = "0" ]; then
+              echo "  Nenhum lead para disparar. Atualizando ultima_execucao."
+              curl -sf -X PATCH \
+                "${SUPABASE_URL}/rest/v1/cadencias?id=eq.${ID}" \
+                -H "apikey: ${SUPABASE_KEY}" \
+                -H "Authorization: Bearer ${SUPABASE_KEY}" \
+                -H "Content-Type: application/json" \
+                -H "Prefer: return=minimal" \
+                -d "{\"ultima_execucao\": \"${NOW_UTC}\"}" > /dev/null
+              continue
+            fi
+
+            # Montar payload do webhook
+            SEGMENTO_STR=$(echo "$SEG_IDS" | jq -r 'join(",")' 2>/dev/null || echo "todos")
+            [ -z "$SEGMENTO_STR" ] && SEGMENTO_STR="todos"
+
+            PAYLOAD=$(jq -n \
+              --arg tn "$(echo "$CAD" | jq -r '.template_nome')" \
+              --arg tc "$(echo "$CAD" | jq -r '.template_corpo // ""')" \
+              --argjson hi "$(echo "$CAD" | jq '.has_image // false')" \
+              --arg iu "$(echo "$CAD" | jq -r '.image_url // ""')" \
+              --arg seg "$SEGMENTO_STR" \
+              --arg tels "$(echo "$ALL_LEADS" | jq -r '[.[].telefone] | join(",")')" \
+              --argjson leads "$(echo "$ALL_LEADS" | jq '[.[] | {id: .id, nome: .nome, telefone: .telefone, email: .email, nomeEscola: .nome_escola, stage: .stage, estado: .estado}]')" \
+              '{template_nome: $tn, template_corpo: $tc, has_image: $hi, image_url: $iu, segmento: $seg, telefones: $tels, leads: $leads}')
+
+            # Disparar webhook
+            HTTP_STATUS=$(curl -s -o /tmp/webhook_cad_response.txt -w "%{http_code}" \
+              -X POST "${WEBHOOK_URL}" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD")
+
+            echo "  Webhook HTTP status: $HTTP_STATUS"
+            echo "  Webhook response: $(cat /tmp/webhook_cad_response.txt)"
+
+            # Atualizar ultima_execucao
+            curl -sf -X PATCH \
+              "${SUPABASE_URL}/rest/v1/cadencias?id=eq.${ID}" \
+              -H "apikey: ${SUPABASE_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_KEY}" \
+              -H "Content-Type: application/json" \
+              -H "Prefer: return=minimal" \
+              -d "{\"ultima_execucao\": \"${NOW_UTC}\"}" > /dev/null
+
+            echo "  Cadência '$NOME' disparada para $QTDE leads (HTTP $HTTP_STATUS)"
+          done
+
+          echo "=== Processamento de cadências concluído ==="

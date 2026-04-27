@@ -71,17 +71,17 @@ function KanbanCard({ lead, onView, onDisparo }: KanbanCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+      className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-semibold text-gray-900 leading-tight">{lead.nome}</p>
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{lead.nome}</p>
         {lead.nivelInteresse && (
           <Badge variant={nivelVariant(lead.nivelInteresse)} className="shrink-0">
             {nivelLabel(lead.nivelInteresse)}
           </Badge>
         )}
       </div>
-      <p className="text-xs text-gray-500 mb-2 truncate">{lead.nomeEscola}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 truncate">{lead.nomeEscola}</p>
       <div className="flex items-center gap-1.5 mb-3">
         <Badge variant={lead.origem === 'sorteio' ? 'sorteio' : 'consultor'}>
           {lead.origem === 'sorteio' ? 'Sorteio' : 'Consultor'}
@@ -94,7 +94,7 @@ function KanbanCard({ lead, onView, onDisparo }: KanbanCardProps) {
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onView(lead); }}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-primary-600 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+          className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <Eye size={12} />
           Ver
@@ -102,7 +102,7 @@ function KanbanCard({ lead, onView, onDisparo }: KanbanCardProps) {
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onDisparo(lead); }}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-green-600 px-2 py-1 rounded hover:bg-green-50 transition-colors"
+          className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 px-2 py-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
         >
           <Send size={12} />
           Disparar
@@ -133,8 +133,8 @@ function LeadDetailModal({ lead, onClose, onUpdateStage }: LeadDetailModalProps)
     const display = typeof value === 'boolean' ? (value ? 'Sim' : 'Não') : value;
     return (
       <div className="flex gap-2">
-        <span className="text-xs font-medium text-gray-500 w-36 shrink-0">{label}</span>
-        <span className="text-xs text-gray-900">{display}</span>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-36 shrink-0">{label}</span>
+        <span className="text-xs text-gray-900 dark:text-gray-100">{display}</span>
       </div>
     );
   };
@@ -144,7 +144,7 @@ function LeadDetailModal({ lead, onClose, onUpdateStage }: LeadDetailModalProps)
       <DialogHeader>
         <div>
           <DialogTitle>{lead.nome}</DialogTitle>
-          <p className="text-sm text-gray-500 mt-0.5">{lead.nomeEscola}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{lead.nomeEscola}</p>
         </div>
         <DialogClose onClose={onClose} />
       </DialogHeader>
@@ -166,12 +166,12 @@ function LeadDetailModal({ lead, onClose, onUpdateStage }: LeadDetailModalProps)
         </div>
         {lead.observacoes && (
           <div>
-            <p className="text-xs font-medium text-gray-500 mb-1">Observações</p>
-            <p className="text-xs text-gray-700 bg-gray-50 p-2 rounded">{lead.observacoes}</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Observações</p>
+            <p className="text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-2 rounded">{lead.observacoes}</p>
           </div>
         )}
         <div>
-          <label className="text-xs font-medium text-gray-500 block mb-1">Mover para etapa</label>
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Mover para etapa</label>
           <Select
             value={selectedStage}
             onChange={(e) => setSelectedStage(e.target.value)}
@@ -236,22 +236,22 @@ function DisparoModal({ lead, onClose }: DisparoModalProps) {
               <Send size={20} className="text-green-600" />
             </div>
             <p className="text-sm font-medium text-green-700">Mensagem disparada com sucesso!</p>
-            <p className="text-xs text-gray-500 mt-1">Lead: {lead.nome}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Lead: {lead.nome}</p>
           </div>
         ) : result === 'error' ? (
           <div className="text-center py-4">
-            <p className="text-sm font-medium text-red-600">Erro ao disparar mensagem.</p>
-            <p className="text-xs text-gray-500 mt-1">Verifique sua conexão e tente novamente.</p>
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">Erro ao disparar mensagem.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Verifique sua conexão e tente novamente.</p>
           </div>
         ) : (
           <>
             <div>
-              <p className="text-sm text-gray-600 mb-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                 Disparar mensagem para <strong>{lead.nome}</strong> ({lead.telefone})
               </p>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">
                 Template (opcional)
               </label>
               <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
@@ -324,12 +324,12 @@ export default function Kanban() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Kanban de Leads</h1>
-          <p className="text-sm text-gray-500">{leads.length} leads no funil</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Kanban de Leads</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{leads.length} leads no funil</p>
         </div>
         <Button onClick={() => navigate('/form/consultor')}>
           <Plus size={16} />
@@ -370,7 +370,7 @@ export default function Kanban() {
                   >
                     <div
                       id={stage.id}
-                      className="flex flex-col gap-2 flex-1 min-h-[120px] rounded-lg p-2 bg-gray-100/60"
+                      className="flex flex-col gap-2 flex-1 min-h-[120px] rounded-lg p-2 bg-gray-100/60 dark:bg-gray-700/30"
                     >
                       {stageLeads.map((lead) => (
                         <KanbanCard
@@ -381,7 +381,7 @@ export default function Kanban() {
                         />
                       ))}
                       {stageLeads.length === 0 && (
-                        <div className="flex items-center justify-center h-16 text-xs text-gray-400">
+                        <div className="flex items-center justify-center h-16 text-xs text-gray-400 dark:text-gray-500">
                           Sem leads
                         </div>
                       )}
@@ -394,9 +394,9 @@ export default function Kanban() {
 
           <DragOverlay>
             {activeLead && (
-              <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-xl rotate-2 w-[280px]">
-                <p className="text-sm font-semibold text-gray-900">{activeLead.nome}</p>
-                <p className="text-xs text-gray-500">{activeLead.nomeEscola}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 shadow-xl rotate-2 w-[280px]">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{activeLead.nome}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{activeLead.nomeEscola}</p>
               </div>
             )}
           </DragOverlay>

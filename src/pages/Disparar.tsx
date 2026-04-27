@@ -387,17 +387,17 @@ export default function Disparar() {
 
   if (result === 'success') {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 bg-white">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+      <div className="h-full flex flex-col items-center justify-center gap-4 bg-white dark:bg-gray-900">
+        <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
           {modoEnvio === 'agendado'
-            ? <Calendar size={28} className="text-green-600" />
-            : <CheckCircle size={28} className="text-green-600" />}
+            ? <Calendar size={28} className="text-green-600 dark:text-green-400" />
+            : <CheckCircle size={28} className="text-green-600 dark:text-green-400" />}
         </div>
         <div className="text-center">
           {modoEnvio === 'agendado' ? (
             <>
-              <p className="text-lg font-bold text-gray-900">Disparo agendado!</p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">Disparo agendado!</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {enviadoCount} lead{enviadoCount !== 1 ? 's' : ''} receberão o template{' '}
                 <strong>{template.name}</strong> em{' '}
                 {new Date(agendadoPara).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.
@@ -405,8 +405,8 @@ export default function Disparar() {
             </>
           ) : (
             <>
-              <p className="text-lg font-bold text-gray-900">Disparo enviado com sucesso!</p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">Disparo enviado com sucesso!</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {enviadoCount} lead{enviadoCount !== 1 ? 's' : ''} notificado{enviadoCount !== 1 ? 's' : ''} com o template <strong>{template.name}</strong>.
               </p>
             </>
@@ -659,7 +659,7 @@ export default function Disparar() {
                           <th className="text-left px-4 py-2.5 font-semibold text-gray-500 dark:text-gray-400">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                         {visiveis.map((l) => {
                           const excluido = excludedIds.has(l.id);
                           return (

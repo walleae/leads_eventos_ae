@@ -3,14 +3,83 @@ name: Disparos Agendados Cron
 on:
   schedule:
     - cron: '*/5 * * * *'  # a cada 5 minutos
-  workflow_dispatch:         # permite disparo manual
+  workflow_dispatch:         # permite disparo manual pela UI do GitHub
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://jbslarybszneytcbzlfq.supabase.co
+      SUPABASE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impic2xhcnlic3puZXl0Y2J6bGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0ODI0MTUsImV4cCI6MjA5MTA1ODQxNX0.PzkBfUobJfGyFe0OVuxP3b-unyHAPYzbDqErZkwlT7M
+      WEBHOOK_URL: https://walle.agendaedu.com/webhook/disparo_leads_eventos
+
     steps:
-      - name: Executar cron de disparos agendados
+      - name: Processar disparos agendados
         run: |
-          curl -sf https://leads-eventos-ae.vercel.app/api/disparos-cron \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            || echo "Cron retornou erro mas continuando"
+          set -e
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "=== Verificando disparos pendentes: $NOW ==="
+
+          # Buscar disparos com status=pendente e horário já passado
+          RESPONSE=$(curl -sf \
+            "${SUPABASE_URL}/rest/v1/disparos_agendados?status=eq.pendente&agendar_para=lte.${NOW}&select=*" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json")
+
+          COUNT=$(echo "$RESPONSE" | jq 'length')
+          echo "Disparos encontrados: $COUNT"
+
+          if [ "$COUNT" = "0" ]; then
+            echo "Nenhum disparo pendente. Encerrando."
+            exit 0
+          fi
+
+          # Processar cada disparo individualmente
+          echo "$RESPONSE" | jq -c '.[]' | while read -r DISPARO; do
+            ID=$(echo "$DISPARO" | jq -r '.id')
+            TEMPLATE=$(echo "$DISPARO" | jq -r '.template_nome')
+            QTDE=$(echo "$DISPARO" | jq '.leads_json | length')
+            echo "--- Processando: id=$ID template=$TEMPLATE leads=$QTDE"
+
+            # Montar payload no formato esperado pelo webhook
+            PAYLOAD=$(echo "$DISPARO" | jq '{
+              template_nome: .template_nome,
+              template_corpo: .template_corpo,
+              has_image: .has_image,
+              image_url: .image_url,
+              segmento: .segmento,
+              telefones: (.leads_json | map(.telefone) | join(",")),
+              leads: .leads_json
+            }')
+
+            # Chamar o webhook
+            HTTP_STATUS=$(curl -s -o /tmp/webhook_response.txt -w "%{http_code}" \
+              -X POST "${WEBHOOK_URL}" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD")
+
+            echo "Webhook HTTP status: $HTTP_STATUS"
+            echo "Webhook response: $(cat /tmp/webhook_response.txt)"
+
+            # Determinar novo status baseado na resposta HTTP
+            if [[ "$HTTP_STATUS" =~ ^2 ]]; then
+              NEW_STATUS="enviado"
+            else
+              NEW_STATUS="erro"
+              echo "ATENÇÃO: webhook retornou erro $HTTP_STATUS para disparo $ID"
+            fi
+
+            # Atualizar registro no Supabase
+            PATCH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+              "${SUPABASE_URL}/rest/v1/disparos_agendados?id=eq.${ID}" \
+              -H "apikey: ${SUPABASE_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_KEY}" \
+              -H "Content-Type: application/json" \
+              -H "Prefer: return=minimal" \
+              -d "{\"status\": \"${NEW_STATUS}\", \"enviado_em\": \"${NOW}\"}")
+
+            echo "Supabase PATCH status: $PATCH_STATUS — disparo $ID marcado como '$NEW_STATUS'"
+          done
+
+          echo "=== Processamento concluído ==="
