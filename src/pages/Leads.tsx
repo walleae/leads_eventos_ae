@@ -871,7 +871,7 @@ function FilterBar({ filters, onSet, onClear, estados, consultores, totalResult 
             type="text"
             value={filters.busca}
             onChange={(e) => onSet('busca', e.target.value)}
-            placeholder="Buscar por nome..."
+            placeholder="Nome ou telefone..."
             className="h-7 pl-7 pr-3 w-48 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
         </div>
@@ -1003,7 +1003,9 @@ export default function Leads() {
       if (filters.busca) {
         const busca = filters.busca.toLowerCase();
         const nome = (l.nome ?? '').toLowerCase();
-        if (!nome.includes(busca)) return false;
+        const tel = (l.telefone ?? '').replace(/\D/g, '');
+        const buscaTel = filters.busca.replace(/\D/g, '');
+        if (!nome.includes(busca) && !tel.includes(buscaTel)) return false;
       }
       if (filters.origem && l.origem !== filters.origem) return false;
       if (filters.porte && l.porteAlunos !== filters.porte) return false;
