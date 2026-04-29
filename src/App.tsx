@@ -10,7 +10,7 @@ import Cadencias from './pages/Cadencias';
 import Historico from './pages/Historico';
 import Login from './pages/Login';
 import { useAuth } from './hooks/useAuth';
-import { supabaseMisconfigured } from './lib/supabase';
+import { supabaseError } from './lib/supabase';
 
 function Spinner() {
   return (
@@ -35,18 +35,17 @@ function LoginPage() {
 }
 
 export default function App() {
-  if (supabaseMisconfigured) {
+  if (supabaseError) {
     return (
       <div style={{ padding: 32, fontFamily: 'sans-serif', maxWidth: 500, margin: '80px auto' }}>
         <h2 style={{ color: '#dc2626' }}>Configuração incompleta</h2>
-        <p>As variáveis de ambiente do Supabase não foram encontradas.</p>
-        <p>Configure no Vercel (Settings → Environment Variables):</p>
+        <p style={{ color: '#dc2626' }}>{supabaseError}</p>
+        <p>Corrija no Vercel em <strong>Settings → Environment Variables</strong>:</p>
         <pre style={{ background: '#f3f4f6', padding: 16, borderRadius: 8, fontSize: 13 }}>
-          VITE_SUPABASE_URL=https://xxxx.supabase.co{'\n'}
-          VITE_SUPABASE_ANON_KEY=eyJ...
+{'VITE_SUPABASE_URL=https://xxxx.supabase.co\nVITE_SUPABASE_ANON_KEY=eyJ...'}
         </pre>
         <p style={{ fontSize: 13, color: '#6b7280' }}>
-          Após adicionar as variáveis, faça um novo deploy no Vercel.
+          Após corrigir, faça Redeploy no Vercel (sem cache).
         </p>
       </div>
     );
