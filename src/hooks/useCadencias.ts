@@ -12,10 +12,9 @@ function dbToCadencia(row: Record<string, unknown>): Cadencia {
     imageUrl: (row.image_url as string | null) ?? undefined,
     segmentoIds: (row.segmento_ids as string[]) ?? [],
     origemIds: (row.origem_ids as string[]) ?? [],
-    diasSemana: (row.dias_semana as number[]) ?? [],
-    horario: row.horario as number,
+    delayValor: (row.delay_valor as number) ?? 1,
+    delayUnidade: (row.delay_unidade as 'horas' | 'dias') ?? 'dias',
     ativo: row.ativo as boolean,
-    ultimaExecucao: (row.ultima_execucao as string | null) ?? undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -41,7 +40,7 @@ export function useCadencias() {
 
   useEffect(() => { fetchCadencias(); }, []);
 
-  const saveCadencia = async (data: Omit<Cadencia, 'id' | 'createdAt' | 'updatedAt' | 'ultimaExecucao'>): Promise<Cadencia | null> => {
+  const saveCadencia = async (data: Omit<Cadencia, 'id' | 'createdAt' | 'updatedAt'>): Promise<Cadencia | null> => {
     const { data: row, error } = await supabase
       .from('cadencias')
       .insert([{
@@ -52,8 +51,8 @@ export function useCadencias() {
         image_url: data.imageUrl ?? null,
         segmento_ids: data.segmentoIds,
         origem_ids: data.origemIds,
-        dias_semana: data.diasSemana,
-        horario: data.horario,
+        delay_valor: data.delayValor,
+        delay_unidade: data.delayUnidade,
         ativo: data.ativo,
       }])
       .select()
@@ -76,8 +75,8 @@ export function useCadencias() {
     if (data.imageUrl !== undefined)      updates.image_url = data.imageUrl ?? null;
     if (data.segmentoIds !== undefined)   updates.segmento_ids = data.segmentoIds;
     if (data.origemIds !== undefined)     updates.origem_ids = data.origemIds;
-    if (data.diasSemana !== undefined)    updates.dias_semana = data.diasSemana;
-    if (data.horario !== undefined)       updates.horario = data.horario;
+    if (data.delayValor !== undefined)    updates.delay_valor = data.delayValor;
+    if (data.delayUnidade !== undefined)  updates.delay_unidade = data.delayUnidade;
     if (data.ativo !== undefined)         updates.ativo = data.ativo;
 
     const { error } = await supabase.from('cadencias').update(updates).eq('id', id);

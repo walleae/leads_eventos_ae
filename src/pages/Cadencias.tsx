@@ -1,34 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  Clock, Plus, Pencil, Trash2, Power, PowerOff,
-  ChevronDown, Check, Calendar, AlertTriangle,
-} from 'lucide-react';
+import { Clock, Plus, Pencil, Trash2, Power, PowerOff, ChevronDown, Check, AlertTriangle, Timer } from 'lucide-react';
 import { useCadencias } from '../hooks/useCadencias';
+import { useSegmentos } from '../hooks/useSegmentos';
 import { useTemplates } from '../hooks/useTemplates';
 import { useLeads } from '../hooks/useLeads';
 import type { Cadencia } from '../types/cadencia';
-import { DIAS_SEMANA } from '../types/cadencia';
 import { getTemplateBody, getTemplateHeaderImageUrl } from '../lib/meta';
 import type { MetaTemplateFull } from '../lib/meta';
-
-// ─── Constantes ───────────────────────────────────────────────────────────────
-
-const SEGMENTOS = [
-  { id: 'quentes',     label: 'Leads quentes' },
-  { id: 'mornos',     label: 'Leads mornos' },
-  { id: 'frios',      label: 'Leads frios' },
-  { id: 'proposta',   label: 'Proposta enviada' },
-  { id: 'negociacao', label: 'Em negociação' },
-  { id: 'aquecimento',label: 'Aquecimento' },
-  { id: 'clientes',   label: 'Já é cliente' },
-  { id: 'convertidos',label: 'Convertidos' },
-  { id: 'novos',      label: 'Novos leads' },
-];
-
-const HORAS = Array.from({ length: 24 }, (_, i) => ({
-  value: i,
-  label: `${String(i).padStart(2, '0')}:00`,
-}));
 
 // ─── Multi-select genérico ────────────────────────────────────────────────────
 
@@ -37,9 +15,10 @@ interface MultiSelectProps {
   selected: string[];
   onChange: (v: string[]) => void;
   placeholder: string;
+  disabled?: boolean;
 }
 
-function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectProps) {
+function MultiSelect({ options, selected, onChange, placeholder, disabled }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -65,8 +44,9 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-between gap-2 w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
+        onClick={() => !disabled && setOpen((o) => !o)}
+        disabled={disabled}
+        className="flex items-center justify-between gap-2 w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span className={selected.length > 0 ? 'text-primary-700 dark:text-primary-400 font-medium' : 'text-gray-400 dark:text-gray-500'}>
           {label}
@@ -76,7 +56,7 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
       {open && (
         <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden max-h-52 overflow-y-auto">
           {options.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Nenhuma opção</p>
+            <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Nenhuma opção disponível</p>
           ) : (
             <>
               {options.map((opt) => {
@@ -110,24 +90,6 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
   );
 }
 
-// ─── Formatação de dias ───────────────────────────────────────────────────────
-
-function formatDias(dias: number[]): string {
-  if (dias.length === 7) return 'Todos os dias';
-  if (dias.length === 0) return 'Nenhum dia';
-  const sorted = [...dias].sort((a, b) => {
-    const order = [1, 2, 3, 4, 5, 6, 0];
-    return order.indexOf(a) - order.indexOf(b);
-  });
-  return sorted.map((d) => DIAS_SEMANA.find((x) => x.value === d)?.label ?? d).join(', ');
-}
-
-function formatUltimaExecucao(iso?: string): string {
-  if (!iso) return 'Nunca executado';
-  const d = new Date(iso);
-  return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-}
-
 // ─── Modal de criação/edição ───────────────────────────────────────────────────
 
 interface FormState {
@@ -135,8 +97,8 @@ interface FormState {
   templateNome: string;
   segmentoIds: string[];
   origemIds: string[];
-  diasSemana: number[];
-  horario: number;
+  delayValor: number;
+  delayUnidade: 'horas' | 'dias';
 }
 
 const FORM_INICIAL: FormState = {
@@ -144,20 +106,21 @@ const FORM_INICIAL: FormState = {
   templateNome: '',
   segmentoIds: [],
   origemIds: [],
-  diasSemana: [1, 2, 3, 4, 5],
-  horario: 9,
+  delayValor: 1,
+  delayUnidade: 'dias',
 };
 
 interface ModalProps {
   cadencia: Cadencia | null;
   metaTemplates: MetaTemplateFull[];
+  segmentosAtivos: { value: string; label: string }[];
   todasOrigens: string[];
   onSave: (data: FormState) => Promise<void>;
   onClose: () => void;
   saving: boolean;
 }
 
-function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose, saving }: ModalProps) {
+function CadenciaModal({ cadencia, metaTemplates, segmentosAtivos, todasOrigens, onSave, onClose, saving }: ModalProps) {
   const [form, setForm] = useState<FormState>(() =>
     cadencia
       ? {
@@ -165,8 +128,8 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
           templateNome: cadencia.templateNome,
           segmentoIds: cadencia.segmentoIds,
           origemIds: cadencia.origemIds,
-          diasSemana: cadencia.diasSemana,
-          horario: cadencia.horario,
+          delayValor: cadencia.delayValor,
+          delayUnidade: cadencia.delayUnidade,
         }
       : FORM_INICIAL
   );
@@ -174,15 +137,7 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
-  const toggleDia = (d: number) =>
-    set('diasSemana', form.diasSemana.includes(d) ? form.diasSemana.filter((x) => x !== d) : [...form.diasSemana, d]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSave(form);
-  };
-
-  const isValid = form.nome.trim() && form.templateNome && form.diasSemana.length > 0;
+  const isValid = form.nome.trim() && form.templateNome && form.delayValor >= 1;
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -191,10 +146,12 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
           <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
             {cadencia ? 'Editar cadência' : 'Nova cadência'}
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Configure o agendamento automático</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Disparo automático baseado no tempo desde a criação do lead
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5 overflow-y-auto max-h-[70vh]">
+        <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="px-6 py-5 space-y-5 overflow-y-auto max-h-[70vh]">
           {/* Nome */}
           <div>
             <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">Nome da cadência</label>
@@ -202,7 +159,7 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
               type="text"
               value={form.nome}
               onChange={(e) => set('nome', e.target.value)}
-              placeholder="Ex: Follow-up leads quentes – seg/qua/sex"
+              placeholder="Ex: Boas-vindas 2h após cadastro"
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               required
             />
@@ -231,57 +188,49 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
             )}
           </div>
 
-          {/* Dias da semana */}
-          <div>
-            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-2">Dias da semana</label>
-            <div className="flex gap-2 flex-wrap">
-              {DIAS_SEMANA.map(({ value, label }) => {
-                const active = form.diasSemana.includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => toggleDia(value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                      active
-                        ? 'bg-primary-600 border-primary-600 text-white'
-                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-300 hover:text-primary-600'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            {form.diasSemana.length === 0 && (
-              <p className="text-xs text-red-500 mt-1">Selecione ao menos um dia</p>
-            )}
-          </div>
-
-          {/* Horário */}
+          {/* Delay */}
           <div>
             <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">
-              Horário (horário de Brasília)
+              Enviar após a criação do lead
             </label>
-            <select
-              value={form.horario}
-              onChange={(e) => set('horario', Number(e.target.value))}
-              className="w-48 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              {HORAS.map((h) => (
-                <option key={h.value} value={h.value}>{h.label}</option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={1}
+                value={form.delayValor}
+                onChange={(e) => set('delayValor', Math.max(1, Number(e.target.value)))}
+                className="w-24 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <select
+                value={form.delayUnidade}
+                onChange={(e) => set('delayUnidade', e.target.value as 'horas' | 'dias')}
+                className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="horas">hora(s)</option>
+                <option value="dias">dia(s)</option>
+              </select>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              O disparo ocorre uma única vez por lead, {form.delayValor} {form.delayUnidade === 'horas' ? `hora${form.delayValor > 1 ? 's' : ''}` : `dia${form.delayValor > 1 ? 's' : ''}`} após a criação.
+            </p>
           </div>
 
           {/* Segmentos */}
           <div>
-            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">Segmento</label>
+            <label className="text-sm font-semibold text-gray-800 dark:text-gray-200 block mb-1.5">
+              Segmento
+              {segmentosAtivos.length === 0 && (
+                <span className="ml-2 text-xs font-normal text-amber-600 dark:text-amber-400">
+                  — ative segmentos na tela de Segmentos
+                </span>
+              )}
+            </label>
             <MultiSelect
-              options={SEGMENTOS.map((s) => ({ value: s.id, label: s.label }))}
+              options={segmentosAtivos}
               selected={form.segmentoIds}
               onChange={(v) => set('segmentoIds', v)}
-              placeholder="Todos os segmentos"
+              placeholder="Todos os segmentos ativos"
+              disabled={segmentosAtivos.length === 0}
             />
           </div>
 
@@ -306,7 +255,7 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
             Cancelar
           </button>
           <button
-            onClick={(e) => { e.preventDefault(); if (isValid) onSave(form); }}
+            onClick={() => { if (isValid) onSave(form); }}
             disabled={!isValid || saving}
             className="px-5 py-2 text-sm font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
@@ -322,19 +271,24 @@ function CadenciaModal({ cadencia, metaTemplates, todasOrigens, onSave, onClose,
 
 interface CardProps {
   cadencia: Cadencia;
+  segmentoLabels: Map<string, string>;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
 }
 
-function CadenciaCard({ cadencia, onEdit, onDelete, onToggle }: CardProps) {
+function CadenciaCard({ cadencia, segmentoLabels, onEdit, onDelete, onToggle }: CardProps) {
   const segLabels = cadencia.segmentoIds.length > 0
-    ? cadencia.segmentoIds.map((id) => SEGMENTOS.find((s) => s.id === id)?.label ?? id).join(', ')
+    ? cadencia.segmentoIds.map((id) => segmentoLabels.get(id) ?? id).join(', ')
     : 'Todos os segmentos';
 
   const origemLabel = cadencia.origemIds.length > 0
     ? cadencia.origemIds.join(', ')
     : 'Todas as origens';
+
+  const delayLabel = `${cadencia.delayValor} ${cadencia.delayUnidade === 'horas'
+    ? `hora${cadencia.delayValor > 1 ? 's' : ''}`
+    : `dia${cadencia.delayValor > 1 ? 's' : ''}`} após criação`;
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl border ${cadencia.ativo ? 'border-gray-200 dark:border-gray-700' : 'border-gray-100 dark:border-gray-700 opacity-60'} p-5 transition-all`}>
@@ -348,23 +302,16 @@ function CadenciaCard({ cadencia, onEdit, onDelete, onToggle }: CardProps) {
           <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{cadencia.nome}</h3>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={onToggle}
-            title={cadencia.ativo ? 'Pausar' : 'Ativar'}
-            className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-          >
+          <button onClick={onToggle} title={cadencia.ativo ? 'Pausar' : 'Ativar'}
+            className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
             {cadencia.ativo ? <PowerOff size={15} /> : <Power size={15} />}
           </button>
-          <button
-            onClick={onEdit}
-            className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-          >
+          <button onClick={onEdit}
+            className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
             <Pencil size={15} />
           </button>
-          <button
-            onClick={onDelete}
-            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-          >
+          <button onClick={onDelete}
+            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
             <Trash2 size={15} />
           </button>
         </div>
@@ -372,11 +319,8 @@ function CadenciaCard({ cadencia, onEdit, onDelete, onToggle }: CardProps) {
 
       <div className="mt-3 space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
         <div className="flex items-center gap-1.5">
-          <Calendar size={12} className="shrink-0 text-gray-400 dark:text-gray-500" />
-          <span className="font-medium text-gray-700 dark:text-gray-300">{formatDias(cadencia.diasSemana)}</span>
-          <span>·</span>
-          <Clock size={12} className="shrink-0 text-gray-400 dark:text-gray-500" />
-          <span className="font-medium text-gray-700 dark:text-gray-300">{String(cadencia.horario).padStart(2, '0')}:00 BRT</span>
+          <Timer size={12} className="shrink-0 text-gray-400 dark:text-gray-500" />
+          <span className="font-semibold text-gray-700 dark:text-gray-300">{delayLabel}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-gray-400 dark:text-gray-500">Template:</span>
@@ -392,10 +336,6 @@ function CadenciaCard({ cadencia, onEdit, onDelete, onToggle }: CardProps) {
             <span className="truncate">{origemLabel}</span>
           </div>
         )}
-        <div className="flex items-center gap-1.5 pt-0.5">
-          <span className="text-gray-400 dark:text-gray-500">Última execução:</span>
-          <span>{formatUltimaExecucao(cadencia.ultimaExecucao)}</span>
-        </div>
       </div>
     </div>
   );
@@ -405,6 +345,7 @@ function CadenciaCard({ cadencia, onEdit, onDelete, onToggle }: CardProps) {
 
 export default function Cadencias() {
   const { cadencias, loading, saveCadencia, updateCadencia, deleteCadencia, toggleAtivo } = useCadencias();
+  const { segmentos } = useSegmentos();
   const { metaTemplates, metaLoading } = useTemplates();
   const { leads } = useLeads();
 
@@ -412,6 +353,16 @@ export default function Cadencias() {
   const [editing, setEditing] = useState<Cadencia | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const segmentosAtivos = useMemo(
+    () => segmentos.filter((s) => s.cadenciaAtiva).map((s) => ({ value: s.id, label: s.label })),
+    [segmentos]
+  );
+
+  const segmentoLabels = useMemo(
+    () => new Map(segmentos.map((s) => [s.id, s.label])),
+    [segmentos]
+  );
 
   const todasOrigens = useMemo(() => {
     const set = new Set(leads.map((l) => l.origem).filter(Boolean));
@@ -421,10 +372,7 @@ export default function Cadencias() {
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (c: Cadencia) => { setEditing(c); setModalOpen(true); };
 
-  const handleSave = async (form: {
-    nome: string; templateNome: string; segmentoIds: string[];
-    origemIds: string[]; diasSemana: number[]; horario: number;
-  }) => {
+  const handleSave = async (form: FormState) => {
     setSaving(true);
     const template = metaTemplates.find((t) => t.name === form.templateNome);
     const templateCorpo = template ? getTemplateBody(template.components) : '';
@@ -442,8 +390,8 @@ export default function Cadencias() {
         imageUrl,
         segmentoIds: form.segmentoIds,
         origemIds: form.origemIds,
-        diasSemana: form.diasSemana,
-        horario: form.horario,
+        delayValor: form.delayValor,
+        delayUnidade: form.delayUnidade,
       });
     } else {
       await saveCadencia({
@@ -454,8 +402,8 @@ export default function Cadencias() {
         imageUrl,
         segmentoIds: form.segmentoIds,
         origemIds: form.origemIds,
-        diasSemana: form.diasSemana,
-        horario: form.horario,
+        delayValor: form.delayValor,
+        delayUnidade: form.delayUnidade,
         ativo: true,
       });
     }
@@ -463,19 +411,15 @@ export default function Cadencias() {
     setModalOpen(false);
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteCadencia(id);
-    setDeleteConfirm(null);
-  };
-
   return (
     <div className="h-full bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Cadências</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Disparos automáticos agendados por dia e hora</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Disparos automáticos baseados no tempo desde a criação do lead
+            </p>
           </div>
           <button
             onClick={openCreate}
@@ -487,16 +431,23 @@ export default function Cadencias() {
         </div>
       </div>
 
-      {/* Body */}
       <div className="max-w-3xl mx-auto px-6 py-6">
-        {/* Info sobre o cron */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
           <Clock size={16} className="text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
           <p className="text-xs text-blue-700 dark:text-blue-300">
-            As cadências são executadas automaticamente a cada hora cheia (horário de Brasília) pelo servidor.
-            O template e os filtros de segmento/origem são aplicados no momento do disparo.
+            Cada cadência dispara <strong>uma única vez por lead</strong>, no delay configurado após a criação.
+            O cron roda a cada hora e processa os leads elegíveis automaticamente.
           </p>
         </div>
+
+        {segmentosAtivos.length === 0 && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
+            <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Nenhum segmento com cadência ativa. Vá em <strong>Segmentos</strong> e ative os segmentos desejados.
+            </p>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -505,14 +456,12 @@ export default function Cadencias() {
         ) : cadencias.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock size={24} className="text-gray-400 dark:text-gray-500" />
+              <Timer size={24} className="text-gray-400 dark:text-gray-500" />
             </div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Nenhuma cadência configurada</p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 mb-5">Crie uma para automatizar seus disparos</p>
-            <button
-              onClick={openCreate}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
-            >
+            <button onClick={openCreate}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors">
               <Plus size={15} />
               Criar primeira cadência
             </button>
@@ -523,6 +472,7 @@ export default function Cadencias() {
               <CadenciaCard
                 key={c.id}
                 cadencia={c}
+                segmentoLabels={segmentoLabels}
                 onEdit={() => openEdit(c)}
                 onToggle={() => toggleAtivo(c.id)}
                 onDelete={() => setDeleteConfirm(c.id)}
@@ -532,11 +482,11 @@ export default function Cadencias() {
         )}
       </div>
 
-      {/* Modal criar/editar */}
       {modalOpen && (
         <CadenciaModal
           cadencia={editing}
           metaTemplates={metaTemplates}
+          segmentosAtivos={segmentosAtivos}
           todasOrigens={todasOrigens}
           onSave={handleSave}
           onClose={() => setModalOpen(false)}
@@ -544,7 +494,6 @@ export default function Cadencias() {
         />
       )}
 
-      {/* Confirm delete */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
@@ -554,16 +503,12 @@ export default function Cadencias() {
             <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">Excluir cadência?</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">Esta ação não pode ser desfeita.</p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
+              <button onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 Cancelar
               </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 px-4 py-2 text-sm font-semibold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
+              <button onClick={async () => { await deleteCadencia(deleteConfirm); setDeleteConfirm(null); }}
+                className="flex-1 px-4 py-2 text-sm font-semibold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
                 Excluir
               </button>
             </div>
@@ -572,4 +517,13 @@ export default function Cadencias() {
       )}
     </div>
   );
+}
+
+interface FormState {
+  nome: string;
+  templateNome: string;
+  segmentoIds: string[];
+  origemIds: string[];
+  delayValor: number;
+  delayUnidade: 'horas' | 'dias';
 }

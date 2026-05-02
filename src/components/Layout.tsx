@@ -8,6 +8,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  Layers,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
@@ -16,6 +17,7 @@ import { useDarkMode } from '../hooks/useDarkMode';
 const navItems = [
   { to: '/leads', label: 'Base de Leads', icon: Users },
   { to: '/templates', label: 'Templates', icon: MessageSquare },
+  { to: '/segmentos', label: 'Segmentos', icon: Layers },
   { to: '/cadencias', label: 'Cadências', icon: Clock },
   { to: '/historico', label: 'Histórico', icon: History },
 ];

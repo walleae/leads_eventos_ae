@@ -7,6 +7,7 @@ import Templates from './pages/Templates';
 import NewTemplate from './pages/NewTemplate';
 import Disparar from './pages/Disparar';
 import Cadencias from './pages/Cadencias';
+import Segmentos from './pages/Segmentos';
 import Historico from './pages/Historico';
 import Login from './pages/Login';
 import { useAuth } from './hooks/useAuth';
@@ -68,6 +69,7 @@ export default function App() {
             <Route path="/templates/novo" element={<NewTemplate />} />
             <Route path="/disparar" element={<Disparar />} />
             <Route path="/cadencias" element={<Cadencias />} />
+            <Route path="/segmentos" element={<Segmentos />} />
             <Route path="/historico" element={<Historico />} />
           </Route>
         </Route>
