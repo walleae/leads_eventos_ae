@@ -73,32 +73,11 @@ jobs:
             ALL_LEADS=$(echo "$ALL_LEADS" | jq --argjson enviados "$ENVIADOS_IDS" \
               '[.[] | select(.id as $id | $enviados | index($id) == null)]')
 
-            # Filtro por origem
-            ORIGEM_IDS=$(echo "$CAD" | jq '.origem_ids // []')
-            if [ "$(echo "$ORIGEM_IDS" | jq 'length')" -gt 0 ]; then
-              ALL_LEADS=$(echo "$ALL_LEADS" | jq --argjson origens "$ORIGEM_IDS" \
-                '[.[] | select(.origem as $o | $origens | index($o) != null)]')
-            fi
-
-            # Filtro por segmento
+            # Filtro por segmento (= origem do lead)
             SEG_IDS=$(echo "$CAD" | jq '.segmento_ids // []')
             if [ "$(echo "$SEG_IDS" | jq 'length')" -gt 0 ]; then
-              ALL_LEADS=$(echo "$ALL_LEADS" | jq --argjson segs "$SEG_IDS" '
-                [.[] | . as $l | $segs | any(
-                  . as $seg |
-                  if $seg == "quentes"     then $l.nivel_interesse == "quente"
-                  elif $seg == "mornos"    then $l.nivel_interesse == "morno"
-                  elif $seg == "frios"     then $l.nivel_interesse == "frio"
-                  elif $seg == "proposta"  then $l.stage == "proposta"
-                  elif $seg == "negociacao" then $l.stage == "negociacao"
-                  elif $seg == "aquecimento" then $l.stage == "aquecimento"
-                  elif $seg == "clientes"  then $l.ja_e_cliente == true
-                  elif $seg == "convertidos" then $l.stage == "convertido"
-                  elif $seg == "novos"     then $l.stage == "novo"
-                  else true
-                  end
-                )]
-              ')
+              ALL_LEADS=$(echo "$ALL_LEADS" | jq --argjson segs "$SEG_IDS" \
+                '[.[] | select(.origem as $o | $segs | index($o) != null)]')
             fi
 
             QTDE=$(echo "$ALL_LEADS" | jq 'length')
@@ -110,7 +89,7 @@ jobs:
             fi
 
             # Montar payload do webhook
-            SEG_STR=$(echo "$SEG_IDS" | jq -r 'if length > 0 then join(",") else "todos" end')
+            SEG_STR=$(echo "$SEG_IDS" | jq -r 'if length > 0 then join(",") else "todas as origens" end')
 
             PAYLOAD=$(jq -n \
               --arg tn "$(echo "$CAD" | jq -r '.template_nome')" \
