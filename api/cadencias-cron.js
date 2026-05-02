@@ -1,8 +1,8 @@
 // Vercel Cron Job: roda a cada hora e dispara cadências agendadas
 // Configurado em vercel.json como cron: "0 * * * *"
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const WEBHOOK_URL = 'https://walle.agendaedu.com/webhook/disparo_leads_eventos';
 const CRON_SECRET = process.env.CRON_SECRET;
 
