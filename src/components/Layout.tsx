@@ -9,6 +9,7 @@ import {
   Sun,
   Moon,
   Layers,
+  Settings,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
@@ -20,6 +21,7 @@ const navItems = [
   { to: '/segmentos', label: 'Segmentos', icon: Layers },
   { to: '/cadencias', label: 'Cadências', icon: Clock },
   { to: '/historico', label: 'Histórico', icon: History },
+  { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 export default function Layout() {

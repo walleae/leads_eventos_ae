@@ -9,6 +9,7 @@ import Disparar from './pages/Disparar';
 import Cadencias from './pages/Cadencias';
 import Segmentos from './pages/Segmentos';
 import Historico from './pages/Historico';
+import Configuracoes from './pages/Configuracoes';
 import Login from './pages/Login';
 import { useAuth } from './hooks/useAuth';
 import { supabaseError } from './lib/supabase';
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/disparar" element={<Disparar />} />
             <Route path="/cadencias" element={<Cadencias />} />
             <Route path="/segmentos" element={<Segmentos />} />
+            <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/historico" element={<Historico />} />
           </Route>
         </Route>
