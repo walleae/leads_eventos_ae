@@ -47,7 +47,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'API key inválida ou ausente (header x-api-key).' });
   }
 
-  const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  let body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch {
+    return res.status(400).json({ error: 'Body inválido. Envie um JSON válido.' });
+  }
 
   // Validação dos campos obrigatórios
   if (!body?.telefone || !body?.origem) {
@@ -76,14 +81,15 @@ export default async function handler(req, res) {
     stage: body.stage ? String(body.stage).trim() : 'novo',
   };
 
-  // Insere o lead no Supabase
+  // Upsert: se o telefone já existir, atualiza os campos fornecidos
   const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
-      Prefer: 'return=representation',
+      Prefer: 'return=representation,resolution=merge-duplicates',
+      'On-Conflict': 'telefone',
     },
     body: JSON.stringify(lead),
   });
