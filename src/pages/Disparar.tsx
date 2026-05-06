@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Send, Users, AlertTriangle, CheckCircle, Link2, MessageCircle,
-  ShieldCheck, ChevronDown, ChevronUp, Check, Calendar,
+  ShieldCheck, ChevronDown, ChevronUp, Check, Calendar, SlidersHorizontal,
 } from 'lucide-react';
 import { useLeads } from '../hooks/useLeads';
 import type { Lead } from '../types/lead';
@@ -23,11 +23,12 @@ interface Filtros {
   interesses: string[];
   jaECliente: '' | 'sim' | 'nao';
   estados: string[];
+  consultor: string[];
 }
 
 const FILTROS_VAZIOS: Filtros = {
   stages: [], niveis: [], portes: [], relacoes: [],
-  origens: [], interesses: [], jaECliente: '', estados: [],
+  origens: [], interesses: [], jaECliente: '', estados: [], consultor: [],
 };
 
 // ─── Segmentos pré-definidos ──────────────────────────────────────────────────
@@ -63,6 +64,7 @@ function applyFiltros(leads: Lead[], f: Filtros): Lead[] {
     if (f.jaECliente === 'sim' && !l.jaECliente)                                                    return false;
     if (f.jaECliente === 'nao' && l.jaECliente)                                                     return false;
     if (f.estados.length   && (!l.estado || !f.estados.includes(l.estado)))                        return false;
+    if (f.consultor.length && (!l.nomeConsultor || !f.consultor.includes(l.nomeConsultor)))        return false;
     return true;
   });
 }
@@ -243,6 +245,8 @@ export default function Disparar() {
 
   const [segmentoIds, setSegmentoIds] = useState<string[]>([]);
   const [origemFilter, setOrigemFilter] = useState<string[]>([]);
+  const [detalhes, setDetalhes] = useState<Filtros>(FILTROS_VAZIOS);
+  const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [listaOpen, setListaOpen] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
@@ -262,18 +266,36 @@ export default function Disparar() {
   useEffect(() => {
     setExcludedIds(new Set());
     setConfirmado(false);
-  }, [segmentoIds, origemFilter]);
+  }, [segmentoIds, origemFilter, detalhes]);
 
   const todasOrigens = useMemo(() => {
     const set = new Set(leads.map((l) => l.origem).filter(Boolean));
     return Array.from(set).sort();
   }, [leads]);
 
+  const todosEstados = useMemo(() => {
+    const set = new Set(leads.map((l) => l.estado).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [leads]);
+
+  const todosConsultores = useMemo(() => {
+    const set = new Set(leads.map((l) => l.nomeConsultor).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [leads]);
+
+  const detalhesAtivos = [
+    detalhes.stages, detalhes.niveis, detalhes.portes, detalhes.relacoes,
+    detalhes.interesses, detalhes.estados, detalhes.consultor,
+  ].reduce((sum, arr) => sum + arr.length, 0) + (detalhes.jaECliente ? 1 : 0);
+
   const leadsAlvo = useMemo(() => {
     // Filtro por origem
-    const base = origemFilter.length > 0
+    let base = origemFilter.length > 0
       ? leads.filter((l) => origemFilter.includes(l.origem))
       : leads;
+
+    // Detalhamento do filtro
+    base = applyFiltros(base, detalhes);
 
     // Filtro por segmento: OR entre todos os selecionados (vazio = todos)
     if (segmentoIds.length === 0) return base;
@@ -285,7 +307,7 @@ export default function Disparar() {
         return applyFiltros([l], { ...FILTROS_VAZIOS, ...seg.filtros }).length > 0;
       })
     );
-  }, [leads, origemFilter, segmentoIds]);
+  }, [leads, origemFilter, segmentoIds, detalhes]);
 
   // Leads que realmente serão enviados (descontando excluídos manualmente)
   const leadsEnvio = useMemo(
@@ -480,6 +502,130 @@ export default function Disparar() {
                   onChange={(v) => { setSegmentoIds(v); setConfirmado(false); }}
                   placeholder="Todos os segmentos"
                 />
+              </div>
+
+              {/* Detalhamento do filtro (colapsável) */}
+              <div className="border-t border-gray-100 dark:border-gray-700 -mx-5 px-5 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setDetalhesOpen((o) => !o)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal size={14} className="text-gray-400 dark:text-gray-500" />
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Detalhamento do filtro</span>
+                    {detalhesAtivos > 0 && (
+                      <span className="text-xs bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400 px-1.5 py-0.5 rounded-full font-medium">
+                        {detalhesAtivos} ativo{detalhesAtivos !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  {detalhesOpen
+                    ? <ChevronUp size={14} className="text-gray-400" />
+                    : <ChevronDown size={14} className="text-gray-400" />}
+                </button>
+
+                {detalhesOpen && (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Etapa do funil</label>
+                        <MultiSelect
+                          options={STAGES.map((s) => ({ value: s.id, label: s.title }))}
+                          selected={detalhes.stages}
+                          onChange={(v) => { setDetalhes((p) => ({ ...p, stages: v })); setConfirmado(false); }}
+                          placeholder="Todas as etapas"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Nível de interesse</label>
+                        <MultiSelect
+                          options={[
+                            { value: 'quente', label: 'Quente' },
+                            { value: 'morno', label: 'Morno' },
+                            { value: 'frio', label: 'Frio' },
+                          ]}
+                          selected={detalhes.niveis}
+                          onChange={(v) => { setDetalhes((p) => ({ ...p, niveis: v })); setConfirmado(false); }}
+                          placeholder="Todos os níveis"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Maior interesse</label>
+                        <MultiSelect
+                          options={[
+                            { value: 'agenda_edu', label: 'Agenda Edu' },
+                            { value: 'pagamentos', label: 'Pagamentos' },
+                            { value: 'ambos', label: 'Ambos' },
+                          ]}
+                          selected={detalhes.interesses}
+                          onChange={(v) => { setDetalhes((p) => ({ ...p, interesses: v })); setConfirmado(false); }}
+                          placeholder="Todos os interesses"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Relação com a escola</label>
+                        <MultiSelect
+                          options={['Diretor', 'Coordenador', 'Professor', 'Outro'].map((r) => ({ value: r, label: r }))}
+                          selected={detalhes.relacoes}
+                          onChange={(v) => { setDetalhes((p) => ({ ...p, relacoes: v })); setConfirmado(false); }}
+                          placeholder="Todas as relações"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Porte de alunos</label>
+                        <MultiSelect
+                          options={['Até 100', '100-300', '300-500', '500+'].map((p) => ({ value: p, label: `${p} alunos` }))}
+                          selected={detalhes.portes}
+                          onChange={(v) => { setDetalhes((p) => ({ ...p, portes: v })); setConfirmado(false); }}
+                          placeholder="Todos os portes"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Estado</label>
+                        <MultiSelect
+                          options={todosEstados.map((e) => ({ value: e, label: e }))}
+                          selected={detalhes.estados}
+                          onChange={(v) => { setDetalhes((p) => ({ ...p, estados: v })); setConfirmado(false); }}
+                          placeholder="Todos os estados"
+                          emptyText="Nenhum estado disponível"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Consultor</label>
+                        <MultiSelect
+                          options={todosConsultores.map((c) => ({ value: c, label: c }))}
+                          selected={detalhes.consultor}
+                          onChange={(v) => { setDetalhes((p) => ({ ...p, consultor: v })); setConfirmado(false); }}
+                          placeholder="Todos os consultores"
+                          emptyText="Nenhum consultor disponível"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Já é cliente?</label>
+                        <select
+                          value={detalhes.jaECliente}
+                          onChange={(e) => { setDetalhes((p) => ({ ...p, jaECliente: e.target.value as '' | 'sim' | 'nao' })); setConfirmado(false); }}
+                          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="">Todos</option>
+                          <option value="sim">Sim</option>
+                          <option value="nao">Não</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {detalhesAtivos > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => { setDetalhes(FILTROS_VAZIOS); setConfirmado(false); }}
+                        className="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                      >
+                        Limpar detalhamento
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </section>
