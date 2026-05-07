@@ -69,18 +69,17 @@ export async function uploadImageToSupabase(file: File): Promise<string> {
 }
 
 /**
- * Upload para o Meta via graph.facebook.com — retorna handle (h:...) para usar em header_handle.
+ * Upload para o Meta em chunks de 4MB — suporta arquivos grandes (imagens e PDFs).
  * Passo 1: POST /app/uploads → upload_session_id
- * Passo 2: POST /<upload_session_id> com binário → handle
+ * Passo 2: POST /<session_id> em partes via file_offset → handle no último chunk
  */
 async function uploadImageToMeta(file: File): Promise<string> {
+  const CHUNK = 4 * 1024 * 1024; // 4MB — abaixo do limite do proxy Vercel
+
   // Passo 1: criar sessão
   const sessionRes = await fetch(
     `${GRAPH_BASE}/v19.0/app/uploads?file_length=${file.size}&file_type=${encodeURIComponent(file.type)}&file_name=${encodeURIComponent(file.name)}`,
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
-    }
+    { method: 'POST', headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } }
   );
   if (!sessionRes.ok) {
     const err = await sessionRes.json().catch(() => ({}));
@@ -88,23 +87,31 @@ async function uploadImageToMeta(file: File): Promise<string> {
   }
   const { id: uploadSessionId } = await sessionRes.json();
 
-  // Passo 2: enviar binário para graph.facebook.com/v19.0/<session_id>
-  const uploadRes = await fetch(`${GRAPH_BASE}/v19.0/${uploadSessionId}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `OAuth ${ACCESS_TOKEN}`,
-      'Content-Type': file.type,
-      file_offset: '0',
-    },
-    body: file,
-  });
-  if (!uploadRes.ok) {
-    const err = await uploadRes.json().catch(() => ({}));
-    throw new Error(`Erro ao enviar imagem para Meta: ${err.error?.message ?? uploadRes.statusText}`);
+  // Passo 2: enviar em chunks
+  let handle: string | undefined;
+  let offset = 0;
+  while (offset < file.size) {
+    const chunk = file.slice(offset, offset + CHUNK);
+    const uploadRes = await fetch(`${GRAPH_BASE}/v19.0/${uploadSessionId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `OAuth ${ACCESS_TOKEN}`,
+        'Content-Type': file.type,
+        file_offset: String(offset),
+      },
+      body: chunk,
+    });
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json().catch(() => ({}));
+      throw new Error(`Erro ao enviar chunk (offset ${offset}): ${err.error?.message ?? uploadRes.statusText}`);
+    }
+    const data = await uploadRes.json();
+    if (data.h) handle = data.h as string;
+    offset += CHUNK;
   }
-  const { h: handle } = await uploadRes.json();
-  if (!handle) throw new Error('Meta não retornou handle da imagem');
-  return handle as string;
+
+  if (!handle) throw new Error('Meta não retornou handle após upload');
+  return handle;
 }
 
 export interface MetaTemplateResult {
@@ -196,19 +203,13 @@ export async function createMetaTemplate(params: {
 
   if (midiaFile) {
     const isPdf = midiaFile.type === 'application/pdf';
-    if (isPdf) {
-      // PDF: declara o header como DOCUMENT sem example
-      // (Meta não aceita header_url para docs; o PDF real é enviado no momento do disparo via n8n)
-      components.push({ type: 'HEADER', format: 'DOCUMENT' });
-    } else {
-      // Imagem: upload binário para Meta → header_handle
-      const handle = await uploadImageToMeta(midiaFile);
-      components.push({
-        type: 'HEADER',
-        format: 'IMAGE',
-        example: { header_handle: [handle] },
-      });
-    }
+    // Imagem ou PDF: upload em chunks para Meta → header_handle
+    const handle = await uploadImageToMeta(midiaFile);
+    components.push({
+      type: 'HEADER',
+      format: isPdf ? 'DOCUMENT' : 'IMAGE',
+      example: { header_handle: [handle] },
+    });
   }
 
   const { corpo: corpoMeta, exemplos } = converterVariaveisParaMeta(corpo);

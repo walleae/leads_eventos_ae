@@ -241,7 +241,7 @@ export default function NewTemplate() {
     setSaving(true);
     setMetaStatus('sending');
     const isPdf = midiaFile?.type === 'application/pdf';
-    setMetaMessage(midiaFile ? `Fazendo upload do ${isPdf ? 'PDF' : 'imagem'}...` : 'Salvando template...');
+    setMetaMessage(midiaFile ? `Fazendo upload do ${isPdf ? 'PDF (pode levar alguns segundos)' : 'imagem'}...` : 'Salvando template...');
 
     try {
       // 1. Upload da mídia para Supabase Storage (se houver)
