@@ -190,7 +190,7 @@ export async function createMetaTemplate(params: {
   midiaUrl?: string;
   botoes?: TemplateButton[];
 }): Promise<MetaTemplateResult> {
-  const { nome, corpo, midiaFile, midiaUrl, botoes } = params;
+  const { nome, corpo, midiaFile, botoes } = params;
 
   const components: object[] = [];
 
