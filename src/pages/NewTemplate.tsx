@@ -258,7 +258,7 @@ export default function NewTemplate() {
 
       // 3. Cria na Meta API
       setMetaMessage('Enviando para a Meta...');
-      const result = await createMetaTemplate({ nome, corpo, midiaFile, botoes: botoesValidos });
+      const result = await createMetaTemplate({ nome, corpo, midiaFile, midiaUrl, botoes: botoesValidos });
       setMetaStatus('success');
       const statusLabel = result.status === 'PENDING' ? 'Aguardando aprovação' : result.status;
       setMetaMessage(`Template enviado! Status Meta: ${statusLabel}.`);

@@ -147,27 +147,38 @@ export async function fetchMetaTemplates(): Promise<MetaTemplateFull[]> {
 
 /**
  * Cria template no WhatsApp Business Manager.
- * Se midiaFile for passado: faz upload para Meta → usa header_handle correto.
- * Suporta imagens (IMAGE) e PDFs (DOCUMENT).
+ * - Imagens: faz upload binário para Meta via proxy → header_handle
+ * - PDFs: usa a URL pública do Supabase → header_url (evita limite de body do proxy)
  */
 export async function createMetaTemplate(params: {
   nome: string;
   corpo: string;
   midiaFile?: File;
+  midiaUrl?: string;
   botoes?: TemplateButton[];
 }): Promise<MetaTemplateResult> {
-  const { nome, corpo, midiaFile, botoes } = params;
+  const { nome, corpo, midiaFile, midiaUrl, botoes } = params;
 
   const components: object[] = [];
 
   if (midiaFile) {
-    const handle = await uploadImageToMeta(midiaFile);
     const isPdf = midiaFile.type === 'application/pdf';
-    components.push({
-      type: 'HEADER',
-      format: isPdf ? 'DOCUMENT' : 'IMAGE',
-      example: { header_handle: [handle] },
-    });
+    if (isPdf && midiaUrl) {
+      // PDF: usa URL pública do Supabase diretamente (sem passar binário pelo proxy)
+      components.push({
+        type: 'HEADER',
+        format: 'DOCUMENT',
+        example: { header_url: [midiaUrl] },
+      });
+    } else {
+      // Imagem: upload binário para Meta → header_handle
+      const handle = await uploadImageToMeta(midiaFile);
+      components.push({
+        type: 'HEADER',
+        format: 'IMAGE',
+        example: { header_handle: [handle] },
+      });
+    }
   }
 
   components.push({ type: 'BODY', text: corpo });
