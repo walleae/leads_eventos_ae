@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Upload, Bold, Italic, Strikethrough, ArrowLeft, X, CheckCircle, AlertCircle, Loader2, Link2, Info, MessageCircle } from 'lucide-react';
+import { Upload, Bold, Italic, Strikethrough, ArrowLeft, X, CheckCircle, AlertCircle, Loader2, Link2, Info, MessageCircle, FileText } from 'lucide-react';
 import { useTemplates } from '../hooks/useTemplates';
 import type { TemplateButton, TemplateButtonType } from '../types/template';
 import { STAGES } from '../types/lead';
@@ -15,13 +15,16 @@ function WhatsAppPreview({
   nome,
   corpo,
   midia,
+  midiaNome,
   botoes,
 }: {
   nome: string;
   corpo: string;
   midia?: string;
+  midiaNome?: string;
   botoes?: TemplateButton[];
 }) {
+  const isPdf = midiaNome?.toLowerCase().endsWith('.pdf');
   const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const renderText = (text: string) => {
@@ -37,7 +40,7 @@ function WhatsAppPreview({
     });
   };
 
-  const hasContent = corpo || midia;
+  const hasContent = corpo || midia || isPdf;
 
   return (
     <div className="flex flex-col h-full">
@@ -64,7 +67,18 @@ function WhatsAppPreview({
             <div className="max-w-[85%] w-full">
               {/* Message bubble */}
               <div className="bg-[#DCF8C6] rounded-xl rounded-tr-sm px-3 py-2 shadow-sm">
-                {midia && (
+                {isPdf && (
+                  <div className="mb-2 bg-white rounded-lg px-3 py-2.5 flex items-center gap-2.5 border border-gray-100">
+                    <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center shrink-0">
+                      <FileText size={16} className="text-red-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-gray-700 truncate">{midiaNome}</p>
+                      <p className="text-[10px] text-gray-400">PDF · Documento</p>
+                    </div>
+                  </div>
+                )}
+                {!isPdf && midia && (
                   <div className="mb-2 rounded-lg overflow-hidden">
                     <img src={midia} alt="Media" className="w-full max-h-48 object-cover" />
                   </div>
@@ -152,17 +166,21 @@ export default function NewTemplate() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo muito grande. Máximo 5MB.');
+    const isPdf = file.type === 'application/pdf';
+    const maxSize = isPdf ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`Arquivo muito grande. Máximo ${isPdf ? '20MB para PDF' : '5MB para imagens'}.`);
       return;
     }
     setMidiaFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setMidia(ev.target?.result as string);
-      setMidiaNome(file.name);
-    };
-    reader.readAsDataURL(file);
+    setMidiaNome(file.name);
+    if (isPdf) {
+      setMidia(undefined); // PDF não tem preview de imagem
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => setMidia(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   const insertFormat = (prefix: string, suffix: string) => {
@@ -213,13 +231,14 @@ export default function NewTemplate() {
     setError('');
     setSaving(true);
     setMetaStatus('sending');
-    setMetaMessage('Fazendo upload da imagem...');
+    const isPdf = midiaFile?.type === 'application/pdf';
+    setMetaMessage(midiaFile ? `Fazendo upload do ${isPdf ? 'PDF' : 'imagem'}...` : 'Salvando template...');
 
     try {
-      // 1. Upload da imagem para Supabase Storage (se houver)
-      let imageUrl: string | undefined;
+      // 1. Upload da mídia para Supabase Storage (se houver)
+      let midiaUrl: string | undefined;
       if (midiaFile) {
-        imageUrl = await uploadImageToSupabase(midiaFile);
+        midiaUrl = await uploadImageToSupabase(midiaFile);
       }
 
       // 2. Salva no Supabase (usa URL pública em vez de base64)
@@ -227,7 +246,7 @@ export default function NewTemplate() {
         nome,
         corpo,
         stage: stage || undefined,
-        midia: imageUrl ?? midia, // URL pública se subiu, senão mantém o que tinha
+        midia: midiaUrl ?? midia,
         midiaNome: midiaNome,
         botoes: botoesValidos,
       };
@@ -239,7 +258,7 @@ export default function NewTemplate() {
 
       // 3. Cria na Meta API
       setMetaMessage('Enviando para a Meta...');
-      const result = await createMetaTemplate({ nome, corpo, imageFile: midiaFile, botoes: botoesValidos });
+      const result = await createMetaTemplate({ nome, corpo, midiaFile, botoes: botoesValidos });
       setMetaStatus('success');
       const statusLabel = result.status === 'PENDING' ? 'Aguardando aprovação' : result.status;
       setMetaMessage(`Template enviado! Status Meta: ${statusLabel}.`);
@@ -311,31 +330,51 @@ export default function NewTemplate() {
               <Label>Cabeçalho — Mídia (opcional)</Label>
               <div className="flex items-start gap-1.5 mt-1 mb-2 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-2 rounded-lg">
                 <Info size={12} className="mt-0.5 shrink-0" />
-                <span>A imagem será enviada para o Supabase Storage e a URL pública usada na criação do template na Meta.</span>
+                <span>Imagem ou PDF — enviado ao Supabase Storage e à Meta. Limite: 5MB imagens · 20MB PDF.</span>
               </div>
-              {midia ? (
+              {(midia || midiaNome) ? (
                 <div className="mt-1 relative">
-                  <img
-                    src={midia}
-                    alt="Preview"
-                    className="w-full max-h-40 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-                  />
-                  <button
-                    onClick={() => { setMidia(undefined); setMidiaNome(undefined); setMidiaFile(undefined); }}
-                    className="absolute top-2 right-2 p-1 bg-white dark:bg-gray-700 rounded-full shadow-md text-gray-600 dark:text-gray-300 hover:text-red-600 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{midiaNome}</p>
+                  {midiaNome?.toLowerCase().endsWith('.pdf') ? (
+                    <div className="flex items-center gap-3 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 bg-gray-50 dark:bg-gray-700/50">
+                      <div className="w-9 h-9 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center shrink-0">
+                        <FileText size={18} className="text-red-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{midiaNome}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">PDF · Documento</p>
+                      </div>
+                      <button
+                        onClick={() => { setMidia(undefined); setMidiaNome(undefined); setMidiaFile(undefined); }}
+                        className="p-1 text-gray-400 hover:text-red-600 transition-colors shrink-0"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <img
+                        src={midia}
+                        alt="Preview"
+                        className="w-full max-h-40 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                      />
+                      <button
+                        onClick={() => { setMidia(undefined); setMidiaNome(undefined); setMidiaFile(undefined); }}
+                        className="absolute top-2 right-2 p-1 bg-white dark:bg-gray-700 rounded-full shadow-md text-gray-600 dark:text-gray-300 hover:text-red-600 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{midiaNome}</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <label className="mt-1 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors">
                   <Upload size={20} className="text-gray-400 dark:text-gray-500 mb-2" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Clique para fazer upload</span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">PNG, JPG até 5MB</span>
+                  <span className="text-sm text-gray-500 dark:text-gray:400">Clique para fazer upload</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">PNG, JPG até 5MB · PDF até 20MB</span>
                   <input
                     type="file"
-                    accept="image/png,image/jpeg"
+                    accept="image/png,image/jpeg,application/pdf"
                     className="hidden"
                     onChange={handleFileUpload}
                   />
@@ -504,7 +543,7 @@ export default function NewTemplate() {
               className="max-w-sm mx-auto bg-white rounded-xl shadow-md overflow-hidden"
               style={{ minHeight: '480px', display: 'flex', flexDirection: 'column' }}
             >
-              <WhatsAppPreview nome={nome} corpo={corpo} midia={midia} botoes={botoes} />
+              <WhatsAppPreview nome={nome} corpo={corpo} midia={midia} midiaNome={midiaNome} botoes={botoes} />
             </div>
           </div>
         </div>

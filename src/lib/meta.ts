@@ -118,6 +118,12 @@ export function getTemplateHeaderImageUrl(components: MetaTemplateComponent[]): 
   return h.example?.header_url?.[0] ?? h.example?.header_handle?.[0];
 }
 
+export function getTemplateHeaderDocumentUrl(components: MetaTemplateComponent[]): string | undefined {
+  const h = components.find((c) => c.type === 'HEADER');
+  if (!h || h.format !== 'DOCUMENT') return undefined;
+  return h.example?.header_url?.[0] ?? h.example?.header_handle?.[0];
+}
+
 /** Busca todos os templates cadastrados no WhatsApp Business Manager */
 export async function fetchMetaTemplates(): Promise<MetaTemplateFull[]> {
   const allTemplates: MetaTemplateFull[] = [];
@@ -141,23 +147,25 @@ export async function fetchMetaTemplates(): Promise<MetaTemplateFull[]> {
 
 /**
  * Cria template no WhatsApp Business Manager.
- * Se imageFile for passado: faz upload para Meta → usa header_handle correto.
+ * Se midiaFile for passado: faz upload para Meta → usa header_handle correto.
+ * Suporta imagens (IMAGE) e PDFs (DOCUMENT).
  */
 export async function createMetaTemplate(params: {
   nome: string;
   corpo: string;
-  imageFile?: File;
+  midiaFile?: File;
   botoes?: TemplateButton[];
 }): Promise<MetaTemplateResult> {
-  const { nome, corpo, imageFile, botoes } = params;
+  const { nome, corpo, midiaFile, botoes } = params;
 
   const components: object[] = [];
 
-  if (imageFile) {
-    const handle = await uploadImageToMeta(imageFile);
+  if (midiaFile) {
+    const handle = await uploadImageToMeta(midiaFile);
+    const isPdf = midiaFile.type === 'application/pdf';
     components.push({
       type: 'HEADER',
-      format: 'IMAGE',
+      format: isPdf ? 'DOCUMENT' : 'IMAGE',
       example: { header_handle: [handle] },
     });
   }
