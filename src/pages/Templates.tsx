@@ -50,7 +50,8 @@ export default function Templates() {
   };
 
   const handleDisparar = (tmpl: MetaTemplateFull, imageUrl?: string) => {
-    navigate('/disparar', { state: { template: tmpl, imageUrl } });
+    const localTemplate = localByName.get(tmpl.name);
+    navigate('/disparar', { state: { template: tmpl, imageUrl, localCorpo: localTemplate?.corpo } });
   };
 
   const localByName = new Map(templates.map((t) => {

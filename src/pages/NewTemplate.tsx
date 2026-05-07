@@ -9,7 +9,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
-import { createMetaTemplate, uploadImageToSupabase } from '../lib/meta';
+import { createMetaTemplate, uploadImageToSupabase, VARIAVEIS_DISPONIVEIS, renderCorpoComExemplos } from '../lib/meta';
 
 function WhatsAppPreview({
   nome,
@@ -197,6 +197,15 @@ export default function NewTemplate() {
       ta.focus();
       ta.setSelectionRange(start + prefix.length, start + prefix.length + (selected || 'texto').length);
     }, 0);
+  };
+
+  const insertText = (text: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const newText = corpo.substring(0, start) + text + corpo.substring(ta.selectionEnd);
+    setCorpo(newText);
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(start + text.length, start + text.length); }, 0);
   };
 
   const addBotao = (type: TemplateButtonType) => {
@@ -414,6 +423,20 @@ export default function NewTemplate() {
                   <Strikethrough size={14} />
                 </button>
               </div>
+              {/* Variáveis dinâmicas */}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {VARIAVEIS_DISPONIVEIS.map((v) => (
+                  <button
+                    key={v.key}
+                    type="button"
+                    onClick={() => insertText(`{{${v.key}}}`)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-mono font-medium text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+                    title={`Inserir variável: ${v.label} (ex: ${v.exemplo})`}
+                  >
+                    {`{{${v.key}}}`}
+                  </button>
+                ))}
+              </div>
               <Textarea
                 id="corpo"
                 ref={textareaRef}
@@ -543,7 +566,7 @@ export default function NewTemplate() {
               className="max-w-sm mx-auto bg-white rounded-xl shadow-md overflow-hidden"
               style={{ minHeight: '480px', display: 'flex', flexDirection: 'column' }}
             >
-              <WhatsAppPreview nome={nome} corpo={corpo} midia={midia} midiaNome={midiaNome} botoes={botoes} />
+              <WhatsAppPreview nome={nome} corpo={renderCorpoComExemplos(corpo)} midia={midia} midiaNome={midiaNome} botoes={botoes} />
             </div>
           </div>
         </div>

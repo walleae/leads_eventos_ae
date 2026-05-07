@@ -259,6 +259,8 @@ export default function Disparar() {
   const template = location.state?.template as MetaTemplateFull | undefined;
   const supabaseImageUrl = location.state?.imageUrl as string | undefined;
 
+  const localCorpo = location.state?.localCorpo as string | undefined;
+
   const { leads } = useLeads();
 
   const [segmentoIds, setSegmentoIds] = useState<string[]>([]);
@@ -386,7 +388,9 @@ export default function Disparar() {
 
   if (!template) return null;
 
+  // localCorpo tem variáveis nomeadas ({{nome}}); corpo Meta tem numeradas ({{1}})
   const corpo = getTemplateBody(template.components);
+  const corpoParaEnvio = localCorpo ?? corpo;
   const stageLabel = (id: string) => STAGES.find((s) => s.id === id)?.title ?? id;
 
   const handleEnviar = async () => {
@@ -417,7 +421,7 @@ export default function Disparar() {
       if (modoEnvio === 'imediato') {
         await dispararMensagem({
           template_nome: template.name,
-          template_corpo: corpo,
+          template_corpo: corpoParaEnvio,
           has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
           image_url: supabaseImageUrl,
           segmento: segmentoIds.join(',') || 'todos',
@@ -436,7 +440,7 @@ export default function Disparar() {
       } else {
         const { error } = await supabase.from('disparos_agendados').insert({
           template_nome: template.name,
-          template_corpo: corpo,
+          template_corpo: corpoParaEnvio,
           has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
           image_url: supabaseImageUrl ?? null,
           segmento: segmentoIds.join(',') || 'todos',

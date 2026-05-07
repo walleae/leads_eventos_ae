@@ -3,6 +3,39 @@ import type { TemplateButton } from '../types/template';
 
 const WABA_ID = import.meta.env.VITE_META_WABA_ID as string;
 const ACCESS_TOKEN = import.meta.env.VITE_META_ACCESS_TOKEN as string;
+
+// ─── Variáveis de template ────────────────────────────────────────────────────
+
+export const VARIAVEIS_DISPONIVEIS = [
+  { key: 'nome',       label: 'Nome',           campo: 'nome',          exemplo: 'João Silva'       },
+  { key: 'nomeEscola', label: 'Nome da escola',  campo: 'nomeEscola',    exemplo: 'Escola ABC'       },
+  { key: 'email',      label: 'E-mail',          campo: 'email',         exemplo: 'joao@escola.com'  },
+  { key: 'cidade',     label: 'Cidade',          campo: 'cidade',        exemplo: 'São Paulo'        },
+  { key: 'estado',     label: 'Estado',          campo: 'estado',        exemplo: 'SP'               },
+  { key: 'consultor',  label: 'Consultor',       campo: 'nomeConsultor', exemplo: 'Pedro'            },
+] as const;
+
+const EXEMPLOS_MAP: Record<string, string> = Object.fromEntries(
+  VARIAVEIS_DISPONIVEIS.map((v) => [v.key, v.exemplo])
+);
+
+/** Preview: substitui {{varName}} por valores de exemplo */
+export function renderCorpoComExemplos(corpo: string): string {
+  return corpo.replace(/\{\{([a-zA-Z]+)\}\}/g, (match, key) => EXEMPLOS_MAP[key] ?? match);
+}
+
+/** Converte {{nome}} → {{1}} para a Meta API e retorna os exemplos na ordem */
+export function converterVariaveisParaMeta(corpo: string): { corpo: string; exemplos: string[] } {
+  const seenVars: string[] = [];
+  const converted = corpo.replace(/\{\{([a-zA-Z]+)\}\}/g, (match, key) => {
+    if (!(key in EXEMPLOS_MAP)) return match;
+    const idx = seenVars.indexOf(key);
+    if (idx >= 0) return `{{${idx + 1}}}`;
+    seenVars.push(key);
+    return `{{${seenVars.length}}}`;
+  });
+  return { corpo: converted, exemplos: seenVars.map((k) => EXEMPLOS_MAP[k]) };
+}
 // Em dev usa proxy Vite; em produção usa Vercel serverless proxy (sem CORS)
 const GRAPH_BASE = import.meta.env.DEV ? '/api/graph' : '/api/meta-proxy';
 
@@ -181,7 +214,12 @@ export async function createMetaTemplate(params: {
     }
   }
 
-  components.push({ type: 'BODY', text: corpo });
+  const { corpo: corpoMeta, exemplos } = converterVariaveisParaMeta(corpo);
+  components.push(
+    exemplos.length > 0
+      ? { type: 'BODY', text: corpoMeta, example: { body_text: [exemplos] } }
+      : { type: 'BODY', text: corpoMeta }
+  );
 
   if (botoes && botoes.length > 0) {
     components.push({
