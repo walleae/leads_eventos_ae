@@ -283,6 +283,11 @@ export default function Disparar() {
     return Array.from(set).sort();
   }, [leads]);
 
+  const todosMaiorInteresse = useMemo(() => {
+    const set = new Set(leads.map((l) => l.maiorInteresse).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [leads]);
+
   const detalhesAtivos = [
     detalhes.stages, detalhes.niveis, detalhes.portes, detalhes.relacoes,
     detalhes.interesses, detalhes.estados, detalhes.consultor,
@@ -553,14 +558,11 @@ export default function Disparar() {
                       <div>
                         <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Maior interesse</label>
                         <MultiSelect
-                          options={[
-                            { value: 'agenda_edu', label: 'Agenda Edu' },
-                            { value: 'pagamentos', label: 'Pagamentos' },
-                            { value: 'ambos', label: 'Ambos' },
-                          ]}
+                          options={todosMaiorInteresse.map((v) => ({ value: v, label: v }))}
                           selected={detalhes.interesses}
                           onChange={(v) => { setDetalhes((p) => ({ ...p, interesses: v })); setConfirmado(false); }}
                           placeholder="Todos os interesses"
+                          emptyText="Nenhum interesse disponível"
                         />
                       </div>
                       <div>
