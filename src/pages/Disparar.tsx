@@ -53,18 +53,36 @@ const SEGMENTOS: Segmento[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const PORTE_RANGES = [
+  { value: 'Até 100',  min: 0,   max: 100  },
+  { value: '100-300',  min: 101, max: 300  },
+  { value: '300-500',  min: 301, max: 500  },
+  { value: '500+',     min: 501, max: Infinity },
+];
+
+function porteInRange(porte: string | undefined, range: string): boolean {
+  if (!porte) return false;
+  const num = parseInt(porte.replace(/\D/g, ''), 10);
+  if (!isNaN(num)) {
+    const r = PORTE_RANGES.find((p) => p.value === range);
+    return r ? num >= r.min && num <= r.max : false;
+  }
+  // fallback: match direto para dados já cadastrados como string de range
+  return porte === range;
+}
+
 function applyFiltros(leads: Lead[], f: Filtros): Lead[] {
   return leads.filter((l) => {
-    if (f.stages.length    && !f.stages.includes(l.stage))                                        return false;
-    if (f.niveis.length    && (!l.nivelInteresse || !f.niveis.includes(l.nivelInteresse)))        return false;
-    if (f.portes.length    && (!l.porteAlunos    || !f.portes.includes(l.porteAlunos)))           return false;
-    if (f.relacoes.length  && !f.relacoes.includes(l.relacaoEscola))                              return false;
-    if (f.origens.length   && !f.origens.includes(l.origem))                                       return false;
-    if (f.interesses.length && (!l.maiorInteresse || !f.interesses.includes(l.maiorInteresse)))   return false;
-    if (f.jaECliente === 'sim' && !l.jaECliente)                                                    return false;
-    if (f.jaECliente === 'nao' && l.jaECliente)                                                     return false;
-    if (f.estados.length   && (!l.estado || !f.estados.includes(l.estado)))                        return false;
-    if (f.consultor.length && (!l.nomeConsultor || !f.consultor.includes(l.nomeConsultor)))        return false;
+    if (f.stages.length    && !f.stages.includes(l.stage))                                                return false;
+    if (f.niveis.length    && (!l.nivelInteresse || !f.niveis.includes(l.nivelInteresse)))                return false;
+    if (f.portes.length    && !f.portes.some((r) => porteInRange(l.porteAlunos, r)))                      return false;
+    if (f.relacoes.length  && !f.relacoes.includes(l.relacaoEscola))                                      return false;
+    if (f.origens.length   && !f.origens.includes(l.origem))                                              return false;
+    if (f.interesses.length && (!l.maiorInteresse || !f.interesses.includes(l.maiorInteresse)))           return false;
+    if (f.jaECliente === 'sim' && !l.jaECliente)                                                          return false;
+    if (f.jaECliente === 'nao' && l.jaECliente)                                                           return false;
+    if (f.estados.length   && (!l.estado || !f.estados.includes(l.estado)))                               return false;
+    if (f.consultor.length && (!l.nomeConsultor || !f.consultor.includes(l.nomeConsultor)))               return false;
     return true;
   });
 }
@@ -286,6 +304,23 @@ export default function Disparar() {
   const todosMaiorInteresse = useMemo(() => {
     const set = new Set(leads.map((l) => l.maiorInteresse).filter(Boolean) as string[]);
     return Array.from(set).sort();
+  }, [leads]);
+
+  const todosNivelInteresse = useMemo(() => {
+    const set = new Set(leads.map((l) => l.nivelInteresse).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [leads]);
+
+  const todosRelacao = useMemo(() => {
+    const set = new Set(leads.map((l) => l.relacaoEscola).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [leads]);
+
+  // Mostra apenas os ranges de porte que têm pelo menos 1 lead
+  const portesDisponiveis = useMemo(() => {
+    return PORTE_RANGES.filter((r) =>
+      leads.some((l) => porteInRange(l.porteAlunos, r.value))
+    );
   }, [leads]);
 
   const detalhesAtivos = [
@@ -545,14 +580,11 @@ export default function Disparar() {
                       <div>
                         <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Nível de interesse</label>
                         <MultiSelect
-                          options={[
-                            { value: 'quente', label: 'Quente' },
-                            { value: 'morno', label: 'Morno' },
-                            { value: 'frio', label: 'Frio' },
-                          ]}
+                          options={todosNivelInteresse.map((v) => ({ value: v, label: v }))}
                           selected={detalhes.niveis}
                           onChange={(v) => { setDetalhes((p) => ({ ...p, niveis: v })); setConfirmado(false); }}
                           placeholder="Todos os níveis"
+                          emptyText="Nenhum nível disponível"
                         />
                       </div>
                       <div>
@@ -568,19 +600,21 @@ export default function Disparar() {
                       <div>
                         <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Relação com a escola</label>
                         <MultiSelect
-                          options={['Diretor', 'Coordenador', 'Professor', 'Outro'].map((r) => ({ value: r, label: r }))}
+                          options={todosRelacao.map((v) => ({ value: v, label: v }))}
                           selected={detalhes.relacoes}
                           onChange={(v) => { setDetalhes((p) => ({ ...p, relacoes: v })); setConfirmado(false); }}
                           placeholder="Todas as relações"
+                          emptyText="Nenhuma relação disponível"
                         />
                       </div>
                       <div>
                         <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Porte de alunos</label>
                         <MultiSelect
-                          options={['Até 100', '100-300', '300-500', '500+'].map((p) => ({ value: p, label: `${p} alunos` }))}
+                          options={portesDisponiveis.map((r) => ({ value: r.value, label: `${r.value} alunos` }))}
                           selected={detalhes.portes}
                           onChange={(v) => { setDetalhes((p) => ({ ...p, portes: v })); setConfirmado(false); }}
                           placeholder="Todos os portes"
+                          emptyText="Nenhum porte disponível"
                         />
                       </div>
                       <div>
