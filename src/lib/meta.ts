@@ -196,13 +196,10 @@ export async function createMetaTemplate(params: {
 
   if (midiaFile) {
     const isPdf = midiaFile.type === 'application/pdf';
-    if (isPdf && midiaUrl) {
-      // PDF: usa URL pública do Supabase diretamente (sem passar binário pelo proxy)
-      components.push({
-        type: 'HEADER',
-        format: 'DOCUMENT',
-        example: { header_url: [midiaUrl] },
-      });
+    if (isPdf) {
+      // PDF: declara o header como DOCUMENT sem example
+      // (Meta não aceita header_url para docs; o PDF real é enviado no momento do disparo via n8n)
+      components.push({ type: 'HEADER', format: 'DOCUMENT' });
     } else {
       // Imagem: upload binário para Meta → header_handle
       const handle = await uploadImageToMeta(midiaFile);
