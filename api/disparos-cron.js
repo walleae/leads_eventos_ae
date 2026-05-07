@@ -51,10 +51,14 @@ export default async function handler(req, res) {
       try {
         const leads = disparo.leads_json;
 
+        const mediaType = disparo.image_url?.toLowerCase().endsWith('.pdf') ? 'document'
+          : disparo.has_image ? 'image'
+          : 'text';
+
         const payload = {
           template_nome: disparo.template_nome,
           template_corpo: disparo.template_corpo,
-          has_image: disparo.has_image,
+          media_type: mediaType,
           image_url: disparo.image_url ?? undefined,
           segmento: disparo.segmento,
           telefones: leads.map((l) => l.telefone).join(','),

@@ -423,7 +423,7 @@ function DisparoModal({ lead, onClose }: DisparoModalProps) {
         ...(template ? {
           template_id: template.id,
           template_nome: normalizeName(template.nome),
-          has_image: !!template.midia,
+          media_type: template.midia?.toLowerCase().endsWith('.pdf') ? 'document' : template.midia ? 'image' : 'text',
           image_url: template.midia ?? undefined,
         } : {}),
       });

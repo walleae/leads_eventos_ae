@@ -133,10 +133,14 @@ export default async function handler(req, res) {
           continue;
         }
 
+        const mediaType = cadencia.image_url?.toLowerCase().endsWith('.pdf') ? 'document'
+          : cadencia.has_image ? 'image'
+          : 'text';
+
         const payload = {
           template_nome: cadencia.template_nome,
           template_corpo: cadencia.template_corpo,
-          has_image: cadencia.has_image,
+          media_type: mediaType,
           image_url: cadencia.image_url ?? undefined,
           segmento: (cadencia.segmento_ids ?? []).join(',') || 'todos',
           telefones: leadsAlvo.map((l) => l.telefone).join(','),

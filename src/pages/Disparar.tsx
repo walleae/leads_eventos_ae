@@ -417,12 +417,15 @@ export default function Disparar() {
       stage: l.stage,
       estado: l.estado,
     }));
+    const headerFormat = template.components.find((c) => c.type === 'HEADER')?.format;
+    const mediaType = headerFormat === 'DOCUMENT' ? 'document' : headerFormat === 'IMAGE' ? 'image' : 'text';
+
     try {
       if (modoEnvio === 'imediato') {
         await dispararMensagem({
           template_nome: template.name,
           template_corpo: corpoParaEnvio,
-          has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
+          media_type: mediaType,
           image_url: supabaseImageUrl,
           segmento: segmentoIds.join(',') || 'todos',
           telefones: leadsEnvio.map((l) => l.telefone).join(','),
@@ -441,7 +444,7 @@ export default function Disparar() {
         const { error } = await supabase.from('disparos_agendados').insert({
           template_nome: template.name,
           template_corpo: corpoParaEnvio,
-          has_image: template.components.some((c) => c.type === 'HEADER' && c.format === 'IMAGE'),
+          has_image: mediaType !== 'text',
           image_url: supabaseImageUrl ?? null,
           segmento: segmentoIds.join(',') || 'todos',
           leads_json: leadsPayload,
