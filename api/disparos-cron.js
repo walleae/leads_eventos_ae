@@ -62,7 +62,10 @@ export default async function handler(req, res) {
           image_url: disparo.image_url ?? undefined,
           segmento: disparo.segmento,
           telefones: leads.map((l) => l.telefone).join(','),
-          leads,
+          leads: leads.map((l) => ({
+            ...l,
+            primeiro_nome: (l.nome ?? '').split(' ')[0],
+          })),
         };
 
         const webhookRes = await fetch(WEBHOOK_URL, {

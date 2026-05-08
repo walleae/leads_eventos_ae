@@ -411,6 +411,7 @@ export default function Disparar() {
     const leadsPayload = leadsEnvio.map((l) => ({
       id: l.id,
       nome: l.nome,
+      primeiro_nome: l.nome?.split(' ')[0] ?? '',
       telefone: l.telefone,
       email: l.email,
       nomeEscola: l.nomeEscola,

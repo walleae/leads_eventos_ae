@@ -147,6 +147,7 @@ export default async function handler(req, res) {
           leads: leadsAlvo.map((l) => ({
             id: l.id,
             nome: l.nome,
+            primeiro_nome: (l.nome ?? '').split(' ')[0],
             telefone: l.telefone,
             email: l.email,
             nomeEscola: l.nome_escola,

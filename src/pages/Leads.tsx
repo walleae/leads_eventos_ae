@@ -416,6 +416,7 @@ function DisparoModal({ lead, onClose }: DisparoModalProps) {
       await dispararMensagem({
         lead_id: lead.id,
         nome: lead.nome,
+        primeiro_nome: lead.nome?.split(' ')[0] ?? '',
         telefone: lead.telefone,
         email: lead.email,
         nomeEscola: lead.nomeEscola,

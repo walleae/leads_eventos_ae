@@ -7,12 +7,13 @@ const ACCESS_TOKEN = import.meta.env.VITE_META_ACCESS_TOKEN as string;
 // ─── Variáveis de template ────────────────────────────────────────────────────
 
 export const VARIAVEIS_DISPONIVEIS = [
-  { key: 'nome',       label: 'Nome',           campo: 'nome',          exemplo: 'João Silva'       },
-  { key: 'nomeEscola', label: 'Nome da escola',  campo: 'nomeEscola',    exemplo: 'Escola ABC'       },
-  { key: 'email',      label: 'E-mail',          campo: 'email',         exemplo: 'joao@escola.com'  },
-  { key: 'cidade',     label: 'Cidade',          campo: 'cidade',        exemplo: 'São Paulo'        },
-  { key: 'estado',     label: 'Estado',          campo: 'estado',        exemplo: 'SP'               },
-  { key: 'consultor',  label: 'Consultor',       campo: 'nomeConsultor', exemplo: 'Pedro'            },
+  { key: 'primeiro_nome', label: '1º nome',         campo: 'primeiro_nome', exemplo: 'João'             },
+  { key: 'nome',          label: 'Nome completo',   campo: 'nome',          exemplo: 'João Silva'       },
+  { key: 'nomeEscola',    label: 'Nome da escola',  campo: 'nomeEscola',    exemplo: 'Escola ABC'       },
+  { key: 'email',         label: 'E-mail',          campo: 'email',         exemplo: 'joao@escola.com'  },
+  { key: 'cidade',        label: 'Cidade',          campo: 'cidade',        exemplo: 'São Paulo'        },
+  { key: 'estado',        label: 'Estado',          campo: 'estado',        exemplo: 'SP'               },
+  { key: 'consultor',     label: 'Consultor',       campo: 'nomeConsultor', exemplo: 'Pedro'            },
 ] as const;
 
 const EXEMPLOS_MAP: Record<string, string> = Object.fromEntries(
