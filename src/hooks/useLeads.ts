@@ -30,12 +30,12 @@ function dbToLead(row: Record<string, unknown>): Lead {
 
 function leadToDb(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Record<string, unknown> {
   return {
-    nome: lead.nome,
-    email: lead.email,
+    nome: lead.nome || null,
+    email: lead.email || null,
     telefone: lead.telefone,
-    nome_escola: lead.nomeEscola,
-    relacao_escola: lead.relacaoEscola,
-    ja_e_cliente: lead.jaECliente,
+    nome_escola: lead.nomeEscola || null,
+    relacao_escola: lead.relacaoEscola || null,
+    ja_e_cliente: lead.jaECliente ?? false,
     estado: lead.estado ?? null,
     cidade: lead.cidade ?? null,
     porte_alunos: lead.porteAlunos ?? null,
