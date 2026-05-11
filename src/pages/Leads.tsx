@@ -379,11 +379,6 @@ function ImportCSVModal({ onClose, onImport }: ImportCSVModalProps) {
     </Dialog>
   );
 }
-const INTERESSE_LABELS: Record<string, string> = {
-  agenda_edu: 'Agenda Edu',
-  pagamentos: 'Pagamentos',
-  ambos: 'Ambos',
-};
 
 function nivelVariant(nivel?: string): 'quente' | 'morno' | 'frio' | 'secondary' {
   if (nivel === 'quente') return 'quente';
@@ -392,9 +387,6 @@ function nivelVariant(nivel?: string): 'quente' | 'morno' | 'frio' | 'secondary'
   return 'secondary';
 }
 
-function stageLabel(stageId: string) {
-  return STAGES.find((s) => s.id === stageId)?.title ?? stageId;
-}
 
 interface DisparoModalProps {
   lead: Lead | null;
@@ -1071,50 +1063,38 @@ export default function Leads() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nome</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Escola</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Relação</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Porte</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Estado</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cliente</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Interesse</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nível</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Consultor</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Origem</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Etapa</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Data</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Ações</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nome</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Escola</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cliente</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nível</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Consultor</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Origem</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Data</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filtered.map((lead) => (
                   <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{lead.nome}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{lead.email}</p>
+                    <td className="px-3 py-3">
+                      <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{lead.nome || '—'}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{lead.telefone}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-xs">{lead.nomeEscola}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.relacaoEscola || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.porteAlunos || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.estado || '—'}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3 text-gray-700 dark:text-gray-300 text-xs max-w-[160px] truncate">{lead.nomeEscola || '—'}</td>
+                    <td className="px-3 py-3">
                       <Badge variant={lead.jaECliente ? 'sim' : 'nao'}>
                         {lead.jaECliente ? 'Sim' : 'Não'}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
-                      {lead.maiorInteresse ? INTERESSE_LABELS[lead.maiorInteresse] : '—'}
-                    </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       {lead.nivelInteresse ? (
                         <Badge variant={nivelVariant(lead.nivelInteresse)}>
                           {lead.nivelInteresse.charAt(0).toUpperCase() + lead.nivelInteresse.slice(1)}
                         </Badge>
                       ) : <span className="text-gray-400 text-xs">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.nomeConsultor || '—'}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3 text-gray-600 dark:text-gray-400 text-xs">{lead.nomeConsultor || '—'}</td>
+                    <td className="px-3 py-3">
                       {lead.origem === 'sorteio' || lead.origem === 'consultor' ? (
                         <Badge variant={lead.origem === 'sorteio' ? 'sorteio' : 'consultor'}>
                           {lead.origem === 'sorteio' ? 'Sorteio' : 'Consultor'}
@@ -1123,9 +1103,8 @@ export default function Leads() {
                         <span className="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{lead.origem}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{stageLabel(lead.stage)}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{formatDate(lead.createdAt)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatDate(lead.createdAt)}</td>
+                    <td className="px-3 py-3">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setEditLead(lead)}
