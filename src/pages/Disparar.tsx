@@ -941,12 +941,19 @@ export default function Disparar() {
             </div>
           </section>
 
-          <div className="h-20" />
+          <div className="h-40 md:h-20" />
         </div>
       </div>
 
-      {/* ── Sticky footer ── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
+      {/* ── Sticky footer — pílula no mobile, barra no desktop ── */}
+      <div className="fixed z-10
+        bottom-24 left-4 right-4 rounded-2xl
+        md:bottom-0 md:left-0 md:right-0 md:rounded-none
+        backdrop-blur-xl md:backdrop-blur-none
+        bg-white/85 dark:bg-gray-900/85 md:bg-white md:dark:bg-gray-800
+        border border-white/50 dark:border-white/10 md:border-0 md:border-t md:border-gray-200 md:dark:border-gray-700
+        shadow-[0_8px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.45)] md:shadow-none
+        px-5 py-4 flex items-center justify-between">
         {result === 'error' && (
           <p className="text-sm text-red-600 flex items-center gap-1.5">
             <AlertTriangle size={14} />

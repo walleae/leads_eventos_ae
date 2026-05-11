@@ -30,8 +30,8 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <aside className="w-60 shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+      {/* Sidebar — visível só no desktop */}
+      <aside className="hidden md:flex w-60 shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col">
         {/* Logo */}
         <div className="px-5 py-5 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2.5">
@@ -87,9 +87,44 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pb-28 md:pb-0">
         <Outlet />
       </main>
+
+      {/* Mobile bottom nav — pílula liquid glass */}
+      <nav className="md:hidden fixed bottom-5 left-0 right-0 flex justify-center z-50 px-4">
+        <div className="flex items-center gap-1 px-2 py-2 rounded-full
+          backdrop-blur-2xl
+          bg-white/75 dark:bg-gray-900/80
+          border border-white/60 dark:border-white/10
+          shadow-[0_8px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.55)]
+          ring-1 ring-black/5 dark:ring-white/5">
+          {navItems.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  'flex flex-col items-center gap-0.5 px-3 py-2 rounded-full transition-all',
+                  isActive
+                    ? 'bg-primary-500/15 text-primary-600 dark:text-primary-400'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                )
+              }
+            >
+              <Icon size={20} />
+              <span className="text-[9px] font-medium leading-none">{label.split(' ')[0]}</span>
+            </NavLink>
+          ))}
+          <button
+            onClick={toggle}
+            className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-all"
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            <span className="text-[9px] font-medium leading-none">{isDark ? 'Claro' : 'Escuro'}</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }
